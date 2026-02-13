@@ -36,8 +36,8 @@ return [
     // Admin middleware
     'middleware' => ['web', 'auth'],
 
-    // Layout to extend for views
-    'layout' => env('EMAIL_MARKETING_LAYOUT', 'admin.layout'),
+    // Layout to extend for views (null = use package's built-in layout)
+    'layout' => env('EMAIL_MARKETING_LAYOUT', null),
 
     // Allowed emails for admin access (empty = all authenticated)
     'admin_emails' => [],

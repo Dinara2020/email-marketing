@@ -63,8 +63,8 @@ EMAIL_MARKETING_IMAGES_MODEL=App\Models\Images
 # Optional: Database connection for leads (null = default)
 EMAIL_MARKETING_LEAD_CONNECTION=null
 
-# Optional: Admin panel customization
-EMAIL_MARKETING_LAYOUT=layouts.admin
+# Optional: Use your own layout (null = use package's built-in layout)
+EMAIL_MARKETING_LAYOUT=
 EMAIL_MARKETING_ROUTE_PREFIX=admin/email-marketing
 
 # Optional: Rate limiting
@@ -106,8 +106,8 @@ return [
     // Admin middleware
     'middleware' => ['web', 'auth'],
 
-    // Blade layout to extend
-    'layout' => env('EMAIL_MARKETING_LAYOUT', 'admin.layout'),
+    // Blade layout to extend (null = use package's built-in layout)
+    'layout' => env('EMAIL_MARKETING_LAYOUT', null),
 ];
 ```
 

@@ -1,4 +1,4 @@
-@extends(config('email-marketing.layout', 'layouts.app'))
+@extends(config('email-marketing.layout') ?: 'email-marketing::layouts.app')
 
 @section('content')
 <div class="container py-5">

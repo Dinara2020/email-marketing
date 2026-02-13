@@ -1,4 +1,4 @@
-@extends(config('email-marketing.layout', 'admin.layout'))
+@extends(config('email-marketing.layout') ?: 'email-marketing::layouts.app')
 
 @section('content')
 <div class="templates-list">
