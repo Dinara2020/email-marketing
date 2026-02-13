@@ -46,7 +46,36 @@ php artisan vendor:publish --tag=email-marketing-views
 
 ## Configuration
 
-Edit `config/email-marketing.php`:
+### Required Environment Variables
+
+Add to your `.env` file:
+
+```env
+# Required: Your lead/recipient model
+EMAIL_MARKETING_LEAD_MODEL=App\Models\Lead
+
+# Optional: Model for storing SMTP settings (null = use .env SMTP)
+EMAIL_MARKETING_COMPANY_MODEL=App\Models\Company
+
+# Optional: Model for logo images (null = no logo)
+EMAIL_MARKETING_IMAGES_MODEL=App\Models\Images
+
+# Optional: Database connection for leads (null = default)
+EMAIL_MARKETING_LEAD_CONNECTION=null
+
+# Optional: Admin panel customization
+EMAIL_MARKETING_LAYOUT=layouts.admin
+EMAIL_MARKETING_ROUTE_PREFIX=admin/email-marketing
+
+# Optional: Rate limiting
+EMAIL_MARKETING_RATE_LIMIT=10
+EMAIL_MARKETING_BASE_DELAY=360
+EMAIL_MARKETING_RANDOM_DELAY=120
+```
+
+### Config File
+
+The published `config/email-marketing.php`:
 
 ```php
 return [
@@ -59,14 +88,17 @@ return [
     // Random delay range (seconds)
     'random_delay' => env('EMAIL_MARKETING_RANDOM_DELAY', 120),
 
-    // Lead/recipient model class
-    'lead_model' => env('EMAIL_MARKETING_LEAD_MODEL', 'App\\Models\\Lead'),
+    // Lead/recipient model class (REQUIRED)
+    'lead_model' => env('EMAIL_MARKETING_LEAD_MODEL', null),
 
-    // Company/Settings model for SMTP storage
-    'company_model' => env('EMAIL_MARKETING_COMPANY_MODEL', 'App\\Models\\Company'),
+    // Company/Settings model for SMTP storage (optional)
+    'company_model' => env('EMAIL_MARKETING_COMPANY_MODEL', null),
 
-    // Images model for logo
-    'images_model' => env('EMAIL_MARKETING_IMAGES_MODEL', 'App\\Models\\Images'),
+    // Images model for logo (optional)
+    'images_model' => env('EMAIL_MARKETING_IMAGES_MODEL', null),
+
+    // Database connection for leads (null = default)
+    'lead_connection' => env('EMAIL_MARKETING_LEAD_CONNECTION', null),
 
     // Admin route prefix
     'route_prefix' => env('EMAIL_MARKETING_ROUTE_PREFIX', 'admin/email-marketing'),
@@ -75,7 +107,7 @@ return [
     'middleware' => ['web', 'auth'],
 
     // Blade layout to extend
-    'layout' => env('EMAIL_MARKETING_LAYOUT', 'layouts.admin'),
+    'layout' => env('EMAIL_MARKETING_LAYOUT', 'admin.layout'),
 ];
 ```
 

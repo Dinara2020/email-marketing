@@ -26,9 +26,23 @@ class EmailMarketingController extends Controller
     /**
      * Get the Lead model class from config
      */
-    protected function getLeadModel(): string
+    protected function getLeadModel(): ?string
     {
-        return config('email-marketing.lead_model', 'App\\Models\\MainCrm\\Lead');
+        return config('email-marketing.lead_model');
+    }
+
+    /**
+     * Check if package is properly configured
+     */
+    protected function checkConfiguration(): ?string
+    {
+        if (!$this->getLeadModel()) {
+            return 'Email Marketing is not configured. Please set EMAIL_MARKETING_LEAD_MODEL in your .env file.';
+        }
+        if (!class_exists($this->getLeadModel())) {
+            return 'Lead model class does not exist: ' . $this->getLeadModel();
+        }
+        return null;
     }
 
     /**
@@ -36,6 +50,10 @@ class EmailMarketingController extends Controller
      */
     public function index()
     {
+        if ($error = $this->checkConfiguration()) {
+            return view('email-marketing::error', ['error' => $error]);
+        }
+
         $stats = [
             'total_campaigns' => EmailCampaign::count(),
             'total_sent' => EmailSend::whereIn('status', ['sent', 'opened'])->count(),

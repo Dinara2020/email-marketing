@@ -40,4 +40,44 @@ class EmailMarketingServiceProvider extends ServiceProvider
             __DIR__ . '/../database/migrations' => database_path('migrations'),
         ], 'email-marketing-migrations');
     }
+
+    /**
+     * Validate that required configuration is set
+     */
+    public static function validateConfig(): array
+    {
+        $errors = [];
+
+        if (!config('email-marketing.lead_model')) {
+            $errors[] = 'email-marketing.lead_model is not configured. Set EMAIL_MARKETING_LEAD_MODEL in .env';
+        } elseif (!class_exists(config('email-marketing.lead_model'))) {
+            $errors[] = 'Lead model class does not exist: ' . config('email-marketing.lead_model');
+        }
+
+        return $errors;
+    }
+
+    /**
+     * Get the lead model class
+     */
+    public static function getLeadModel(): ?string
+    {
+        return config('email-marketing.lead_model');
+    }
+
+    /**
+     * Get the company model class
+     */
+    public static function getCompanyModel(): ?string
+    {
+        return config('email-marketing.company_model');
+    }
+
+    /**
+     * Get the images model class
+     */
+    public static function getImagesModel(): ?string
+    {
+        return config('email-marketing.images_model');
+    }
 }

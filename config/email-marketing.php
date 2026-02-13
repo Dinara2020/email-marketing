@@ -16,17 +16,19 @@ return [
     // Random delay range (seconds) - adds 0 to this value
     'random_delay' => env('EMAIL_MARKETING_RANDOM_DELAY', 120),
 
-    // Lead model class (for recipient data)
-    'lead_model' => env('EMAIL_MARKETING_LEAD_MODEL', 'App\\Models\\MainCrm\\Lead'),
+    // Lead/Recipient model class (must have: id, email, company_name or name)
+    'lead_model' => env('EMAIL_MARKETING_LEAD_MODEL', null),
 
-    // Company/Settings model class (for SMTP settings storage)
-    'company_model' => env('EMAIL_MARKETING_COMPANY_MODEL', 'App\\Models\\Company'),
+    // Company/Settings model class for storing SMTP settings (must have: key, value columns)
+    // Set to null to use .env SMTP settings instead
+    'company_model' => env('EMAIL_MARKETING_COMPANY_MODEL', null),
 
-    // Images model class (for logo)
-    'images_model' => env('EMAIL_MARKETING_IMAGES_MODEL', 'App\\Models\\Images'),
+    // Images model class for logo (must have: type, src columns)
+    // Set to null to disable logo in emails
+    'images_model' => env('EMAIL_MARKETING_IMAGES_MODEL', null),
 
-    // Database connection for leads
-    'lead_connection' => env('EMAIL_MARKETING_LEAD_CONNECTION', 'main'),
+    // Database connection for leads (null = default connection)
+    'lead_connection' => env('EMAIL_MARKETING_LEAD_CONNECTION', null),
 
     // Admin route prefix
     'route_prefix' => env('EMAIL_MARKETING_ROUTE_PREFIX', 'admin/email-marketing'),
