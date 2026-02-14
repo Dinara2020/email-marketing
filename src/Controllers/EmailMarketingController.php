@@ -247,6 +247,34 @@ class EmailMarketingController extends Controller
             ->with('success', 'Campaign created with ' . $campaign->total_recipients . ' recipients');
     }
 
+    public function createCampaignCsv()
+    {
+        $templates = EmailTemplate::where('is_active', true)->get();
+        return view('email-marketing::campaigns.create-csv', compact('templates'));
+    }
+
+    public function storeCampaignCsv(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'template_id' => 'required|exists:email_templates,id',
+            'csv_file' => 'required|file|mimes:csv,txt|max:5120',
+        ]);
+
+        $campaign = $this->campaignService->createCampaignFromCsv(
+            $request->input('name'),
+            $request->input('template_id'),
+            $request->file('csv_file')
+        );
+
+        if ($campaign->total_recipients === 0) {
+            return back()->with('error', 'Не найдено валидных email адресов');
+        }
+
+        return redirect()->route('email-marketing.campaigns.show', $campaign)
+            ->with('success', 'Кампания создана: ' . $campaign->total_recipients . ' получателей');
+    }
+
     public function showCampaign(EmailCampaign $campaign)
     {
         $campaign->load(['template', 'sends' => function ($query) {

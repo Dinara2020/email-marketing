@@ -211,6 +211,95 @@ class EmailCampaignService
     }
 
     /**
+     * Create campaign from CSV file
+     */
+    public function createCampaignFromCsv(string $name, int $templateId, $csvFile): EmailCampaign
+    {
+        // Parse CSV and extract emails
+        $content = file_get_contents($csvFile->getRealPath());
+        $rawEmails = preg_split('/[\r\n,;]+/', $content);
+
+        // Clean and validate emails
+        $validEmails = [];
+        foreach ($rawEmails as $email) {
+            $cleaned = $this->cleanEmail($email);
+            if ($cleaned && filter_var($cleaned, FILTER_VALIDATE_EMAIL)) {
+                $validEmails[] = strtolower($cleaned);
+            }
+        }
+
+        // Remove duplicates
+        $validEmails = array_unique($validEmails);
+
+        if (empty($validEmails)) {
+            return EmailCampaign::create([
+                'name' => $name,
+                'template_id' => $templateId,
+                'status' => EmailCampaign::STATUS_DRAFT,
+                'total_recipients' => 0,
+            ]);
+        }
+
+        // Get unsubscribed emails
+        $unsubscribedEmails = EmailUnsubscribe::pluck('email')->map(fn($e) => strtolower($e))->toArray();
+
+        // Get emails sent in last 3 days
+        $recentlySentEmails = EmailSend::where('created_at', '>=', now()->subDays(3))
+            ->whereIn('status', [EmailSend::STATUS_SENT, EmailSend::STATUS_OPENED])
+            ->pluck('email')
+            ->map(fn($e) => strtolower($e))
+            ->toArray();
+
+        // Filter emails
+        $filteredEmails = array_filter($validEmails, function ($email) use ($unsubscribedEmails, $recentlySentEmails) {
+            // Skip unsubscribed
+            if (in_array($email, $unsubscribedEmails)) {
+                return false;
+            }
+            // Skip recently sent
+            if (in_array($email, $recentlySentEmails)) {
+                return false;
+            }
+            return true;
+        });
+
+        $campaign = EmailCampaign::create([
+            'name' => $name,
+            'template_id' => $templateId,
+            'status' => EmailCampaign::STATUS_DRAFT,
+            'total_recipients' => count($filteredEmails),
+        ]);
+
+        // Create email sends
+        foreach ($filteredEmails as $email) {
+            EmailSend::create([
+                'campaign_id' => $campaign->id,
+                'hotel_id' => null,
+                'email' => $email,
+                'recipient_name' => '',
+                'status' => EmailSend::STATUS_PENDING,
+            ]);
+        }
+
+        return $campaign;
+    }
+
+    /**
+     * Clean email from spaces and < > symbols
+     */
+    protected function cleanEmail(string $email): string
+    {
+        // Remove < and > symbols
+        $email = str_replace(['<', '>'], '', $email);
+
+        // Remove all spaces (including inside)
+        $email = preg_replace('/\s+/', '', $email);
+
+        // Trim
+        return trim($email);
+    }
+
+    /**
      * Check if model table has specific column
      */
     protected function hasColumn(string $model, string $column): bool

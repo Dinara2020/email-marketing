@@ -8,6 +8,9 @@
             <a href="{{ route('email-marketing.index') }}" class="btn btn-outline-secondary me-2">
                 <i class="fas fa-arrow-left"></i> Back
             </a>
+            <a href="{{ route('email-marketing.campaigns.create-csv') }}" class="btn btn-outline-primary me-2">
+                <i class="fas fa-file-csv"></i> Из CSV
+            </a>
             <a href="{{ route('email-marketing.campaigns.create') }}" class="btn btn-primary">
                 <i class="fas fa-plus"></i> New Campaign
             </a>

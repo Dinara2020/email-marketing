@@ -54,7 +54,9 @@ Route::prefix(config('email-marketing.route_prefix', 'admin/email-marketing'))
         // Campaigns
         Route::get('/campaigns', [EmailMarketingController::class, 'campaigns'])->name('campaigns');
         Route::get('/campaigns/create', [EmailMarketingController::class, 'createCampaign'])->name('campaigns.create');
+        Route::get('/campaigns/create-csv', [EmailMarketingController::class, 'createCampaignCsv'])->name('campaigns.create-csv');
         Route::post('/campaigns', [EmailMarketingController::class, 'storeCampaign'])->name('campaigns.store');
+        Route::post('/campaigns/csv', [EmailMarketingController::class, 'storeCampaignCsv'])->name('campaigns.store-csv');
         Route::get('/campaigns/{campaign}', [EmailMarketingController::class, 'showCampaign'])->name('campaigns.show');
         Route::post('/campaigns/{campaign}/start', [EmailMarketingController::class, 'startCampaign'])->name('campaigns.start');
         Route::post('/campaigns/{campaign}/pause', [EmailMarketingController::class, 'pauseCampaign'])->name('campaigns.pause');
