@@ -49,14 +49,18 @@
             </div>
         </div>
         <div class="col-md-2">
-            <a href="{{ route('email-marketing.unsubscribes') }}" class="text-decoration-none">
+            @if(Route::has('email-marketing.unsubscribes'))
+                <a href="{{ route('email-marketing.unsubscribes') }}" class="text-decoration-none">
+            @endif
                 <div class="card bg-danger text-white">
                     <div class="card-body">
                         <h5 class="card-title">Отписки</h5>
                         <h2>{{ $stats['unsubscribes_count'] }}</h2>
                     </div>
                 </div>
-            </a>
+            @if(Route::has('email-marketing.unsubscribes'))
+                </a>
+            @endif
         </div>
     </div>
 

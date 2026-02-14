@@ -15,8 +15,8 @@ class SendCampaignEmail implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public $tries = 3;
-    public $backoff = [60, 300, 900]; // Retry after 1min, 5min, 15min
+    public $tries = 1; // No auto-retry, manual resend via dashboard
+    public $maxExceptions = 1;
 
     protected EmailSend $emailSend;
 
@@ -27,6 +27,9 @@ class SendCampaignEmail implements ShouldQueue
 
     public function handle(EmailCampaignService $service): void
     {
+        // Refresh model from DB
+        $this->emailSend->refresh();
+
         // Check if campaign is still sending
         $campaign = $this->emailSend->campaign;
         if ($campaign->status !== EmailCampaign::STATUS_SENDING) {
@@ -37,6 +40,15 @@ class SendCampaignEmail implements ShouldQueue
         if (!$this->emailSend->isPending()) {
             return;
         }
+
+        // Check max attempts (strict limit of 2)
+        if (($this->emailSend->attempts ?? 0) >= EmailSend::MAX_ATTEMPTS) {
+            $this->emailSend->markAsFailed('Превышен лимит попыток (2)');
+            return;
+        }
+
+        // Increment attempts before sending
+        $this->emailSend->increment('attempts');
 
         // Send the email
         $service->sendEmail($this->emailSend);

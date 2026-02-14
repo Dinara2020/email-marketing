@@ -16,6 +16,7 @@ class EmailSend extends Model
         'email',
         'recipient_name',
         'status',
+        'attempts',
         'tracking_id',
         'sent_at',
         'opened_at',
@@ -24,6 +25,8 @@ class EmailSend extends Model
         'opened_user_agent',
         'error_message',
     ];
+
+    const MAX_ATTEMPTS = 2;
 
     protected $casts = [
         'sent_at' => 'datetime',
@@ -149,6 +152,15 @@ class EmailSend extends Model
                 'email_bounced_at' => now(),
             ]);
         }
+    }
+
+    /**
+     * Check if can retry sending
+     */
+    public function canRetry(): bool
+    {
+        return ($this->attempts ?? 0) < self::MAX_ATTEMPTS
+            && $this->status === self::STATUS_FAILED;
     }
 
     /**

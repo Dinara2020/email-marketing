@@ -275,14 +275,37 @@ class EmailMarketingController extends Controller
             ->with('success', 'Кампания создана: ' . $campaign->total_recipients . ' получателей');
     }
 
-    public function showCampaign(EmailCampaign $campaign)
+    public function showCampaign(EmailCampaign $campaign, Request $request)
     {
-        $campaign->load(['template', 'sends' => function ($query) {
-            $query->withCount('clicks')->with('lead');
-        }]);
+        $campaign->load('template');
+
+        // Sorting
+        $sortBy = $request->get('sort', 'id');
+        $sortDir = $request->get('dir', 'desc');
+
+        // Validate sort columns
+        $allowedSorts = ['id', 'email', 'status', 'sent_at', 'opened_at', 'open_count'];
+        if (!in_array($sortBy, $allowedSorts)) {
+            $sortBy = 'id';
+        }
+        $sortDir = $sortDir === 'asc' ? 'asc' : 'desc';
+
+        // Filter by status
+        $statusFilter = $request->get('status');
+
+        $sendsQuery = $campaign->sends()
+            ->withCount('clicks')
+            ->with('lead');
+
+        if ($statusFilter && in_array($statusFilter, ['pending', 'sent', 'opened', 'failed', 'skipped', 'bounced'])) {
+            $sendsQuery->where('status', $statusFilter);
+        }
+
+        $sends = $sendsQuery->orderBy($sortBy, $sortDir)->paginate(50)->withQueryString();
+
         $stats = $this->campaignService->getCampaignStats($campaign);
 
-        return view('email-marketing::campaigns.show', compact('campaign', 'stats'));
+        return view('email-marketing::campaigns.show', compact('campaign', 'sends', 'stats', 'sortBy', 'sortDir', 'statusFilter'));
     }
 
     public function startCampaign(EmailCampaign $campaign): JsonResponse
@@ -317,6 +340,55 @@ class EmailMarketingController extends Controller
         $campaign->delete();
         return redirect()->route('email-marketing.campaigns')
             ->with('success', 'Campaign deleted');
+    }
+
+    /**
+     * Resend failed emails in a campaign (max 2 attempts total)
+     */
+    public function resendFailed(EmailCampaign $campaign): JsonResponse
+    {
+        // Only resend emails with less than 2 attempts
+        $canRetryCount = $campaign->sends()
+            ->where('status', 'failed')
+            ->where(function ($q) {
+                $q->whereNull('attempts')->orWhere('attempts', '<', EmailSend::MAX_ATTEMPTS);
+            })
+            ->count();
+
+        if ($canRetryCount === 0) {
+            $totalFailed = $campaign->sends()->where('status', 'failed')->count();
+            if ($totalFailed > 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Все {$totalFailed} писем уже отправлялись 2 раза"
+                ]);
+            }
+            return response()->json(['success' => false, 'message' => 'Нет failed писем для переотправки']);
+        }
+
+        // Reset only failed emails with attempts < 2
+        $campaign->sends()
+            ->where('status', 'failed')
+            ->where(function ($q) {
+                $q->whereNull('attempts')->orWhere('attempts', '<', EmailSend::MAX_ATTEMPTS);
+            })
+            ->update([
+                'status' => 'pending',
+                'error_message' => null,
+            ]);
+
+        // Update campaign stats
+        $campaign->update([
+            'status' => EmailCampaign::STATUS_SENDING,
+        ]);
+
+        // Restart sending
+        $this->campaignService->startCampaign($campaign);
+
+        return response()->json([
+            'success' => true,
+            'message' => "Переотправка {$canRetryCount} писем"
+        ]);
     }
 
     // ==================== Lead Search ====================

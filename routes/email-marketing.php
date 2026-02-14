@@ -61,6 +61,7 @@ Route::prefix(config('email-marketing.route_prefix', 'admin/email-marketing'))
         Route::post('/campaigns/{campaign}/start', [EmailMarketingController::class, 'startCampaign'])->name('campaigns.start');
         Route::post('/campaigns/{campaign}/pause', [EmailMarketingController::class, 'pauseCampaign'])->name('campaigns.pause');
         Route::post('/campaigns/{campaign}/resume', [EmailMarketingController::class, 'resumeCampaign'])->name('campaigns.resume');
+        Route::post('/campaigns/{campaign}/resend-failed', [EmailMarketingController::class, 'resendFailed'])->name('campaigns.resend-failed');
         Route::delete('/campaigns/{campaign}', [EmailMarketingController::class, 'deleteCampaign'])->name('campaigns.delete');
 
         // Lead/Hotel Search API

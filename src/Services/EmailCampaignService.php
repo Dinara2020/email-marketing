@@ -217,7 +217,19 @@ class EmailCampaignService
     {
         // Parse CSV and extract emails
         $content = file_get_contents($csvFile->getRealPath());
-        $rawEmails = preg_split('/[\r\n,;]+/', $content);
+
+        // Remove BOM if present (UTF-8, UTF-16, UTF-32)
+        $bom = pack('H*', 'EFBBBF');
+        $content = preg_replace("/^$bom/", '', $content);
+
+        // Convert encoding if needed
+        $encoding = mb_detect_encoding($content, ['UTF-8', 'Windows-1251', 'ISO-8859-1'], true);
+        if ($encoding && $encoding !== 'UTF-8') {
+            $content = mb_convert_encoding($content, 'UTF-8', $encoding);
+        }
+
+        // Split by newlines, commas, semicolons, tabs
+        $rawEmails = preg_split('/[\r\n,;\t]+/', $content);
 
         // Clean and validate emails
         $validEmails = [];
@@ -290,13 +302,16 @@ class EmailCampaignService
     protected function cleanEmail(string $email): string
     {
         // Remove < and > symbols
-        $email = str_replace(['<', '>'], '', $email);
+        $email = str_replace(['<', '>', '"', "'"], '', $email);
 
-        // Remove all spaces (including inside)
+        // Remove all whitespace characters (spaces, tabs, etc)
         $email = preg_replace('/\s+/', '', $email);
 
+        // Remove invisible characters
+        $email = preg_replace('/[\x00-\x1F\x7F]/u', '', $email);
+
         // Trim
-        return trim($email);
+        return strtolower(trim($email));
     }
 
     /**

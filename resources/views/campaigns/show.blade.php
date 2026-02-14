@@ -112,9 +112,14 @@
         <div class="row mb-4">
             @if($stats['failed'] > 0)
                 <div class="col-md-6">
-                    <div class="alert alert-danger mb-0">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        <strong>{{ $stats['failed'] }}</strong> emails failed to deliver
+                    <div class="alert alert-danger mb-0 d-flex justify-content-between align-items-center">
+                        <div>
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <strong>{{ $stats['failed'] }}</strong> emails failed to deliver
+                        </div>
+                        <button type="button" class="btn btn-sm btn-danger" id="resendFailedBtn">
+                            <i class="fas fa-redo"></i> Resend Failed
+                        </button>
                     </div>
                 </div>
             @endif
@@ -132,29 +137,35 @@
     <!-- Emails List -->
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Email List</h5>
+            <h5 class="mb-0">Email List ({{ $sends->total() }})</h5>
             <div>
-                <button type="button" class="btn btn-sm btn-outline-secondary filter-btn active" data-filter="all">
+                <a href="{{ route('email-marketing.campaigns.show', $campaign) }}"
+                   class="btn btn-sm {{ !$statusFilter ? 'btn-secondary' : 'btn-outline-secondary' }}">
                     All ({{ $stats['total'] }})
-                </button>
-                <button type="button" class="btn btn-sm btn-outline-warning filter-btn" data-filter="pending">
+                </a>
+                <a href="{{ route('email-marketing.campaigns.show', ['campaign' => $campaign, 'status' => 'pending']) }}"
+                   class="btn btn-sm {{ $statusFilter === 'pending' ? 'btn-warning' : 'btn-outline-warning' }}">
                     Pending ({{ $stats['pending'] }})
-                </button>
-                <button type="button" class="btn btn-sm btn-outline-success filter-btn" data-filter="sent">
+                </a>
+                <a href="{{ route('email-marketing.campaigns.show', ['campaign' => $campaign, 'status' => 'sent']) }}"
+                   class="btn btn-sm {{ $statusFilter === 'sent' ? 'btn-success' : 'btn-outline-success' }}">
                     Sent ({{ $stats['sent'] - $stats['opened'] }})
-                </button>
-                <button type="button" class="btn btn-sm btn-outline-info filter-btn" data-filter="opened">
+                </a>
+                <a href="{{ route('email-marketing.campaigns.show', ['campaign' => $campaign, 'status' => 'opened']) }}"
+                   class="btn btn-sm {{ $statusFilter === 'opened' ? 'btn-info' : 'btn-outline-info' }}">
                     Opened ({{ $stats['opened'] }})
-                </button>
+                </a>
                 @if($stats['failed'] > 0)
-                    <button type="button" class="btn btn-sm btn-outline-danger filter-btn" data-filter="failed">
+                    <a href="{{ route('email-marketing.campaigns.show', ['campaign' => $campaign, 'status' => 'failed']) }}"
+                       class="btn btn-sm {{ $statusFilter === 'failed' ? 'btn-danger' : 'btn-outline-danger' }}">
                         Failed ({{ $stats['failed'] }})
-                    </button>
+                    </a>
                 @endif
                 @if(($stats['skipped'] ?? 0) > 0)
-                    <button type="button" class="btn btn-sm btn-outline-secondary filter-btn" data-filter="skipped">
+                    <a href="{{ route('email-marketing.campaigns.show', ['campaign' => $campaign, 'status' => 'skipped']) }}"
+                       class="btn btn-sm {{ $statusFilter === 'skipped' ? 'btn-secondary' : 'btn-outline-secondary' }}">
                         Skipped ({{ $stats['skipped'] }})
-                    </button>
+                    </a>
                 @endif
             </div>
         </div>
@@ -163,17 +174,57 @@
                 <thead>
                     <tr>
                         <th>Recipient</th>
-                        <th>Email</th>
-                        <th>Status</th>
-                        <th>Sent</th>
-                        <th>Opened</th>
-                        <th>Opens</th>
+                        <th>
+                            <a href="{{ route('email-marketing.campaigns.show', array_merge(request()->except(['sort', 'dir']), ['campaign' => $campaign, 'sort' => 'email', 'dir' => ($sortBy === 'email' && $sortDir === 'asc') ? 'desc' : 'asc'])) }}"
+                               class="text-dark text-decoration-none">
+                                Email
+                                @if($sortBy === 'email')
+                                    <i class="fas fa-sort-{{ $sortDir === 'asc' ? 'up' : 'down' }}"></i>
+                                @endif
+                            </a>
+                        </th>
+                        <th>
+                            <a href="{{ route('email-marketing.campaigns.show', array_merge(request()->except(['sort', 'dir']), ['campaign' => $campaign, 'sort' => 'status', 'dir' => ($sortBy === 'status' && $sortDir === 'asc') ? 'desc' : 'asc'])) }}"
+                               class="text-dark text-decoration-none">
+                                Status
+                                @if($sortBy === 'status')
+                                    <i class="fas fa-sort-{{ $sortDir === 'asc' ? 'up' : 'down' }}"></i>
+                                @endif
+                            </a>
+                        </th>
+                        <th>
+                            <a href="{{ route('email-marketing.campaigns.show', array_merge(request()->except(['sort', 'dir']), ['campaign' => $campaign, 'sort' => 'sent_at', 'dir' => ($sortBy === 'sent_at' && $sortDir === 'desc') ? 'asc' : 'desc'])) }}"
+                               class="text-dark text-decoration-none">
+                                Sent
+                                @if($sortBy === 'sent_at')
+                                    <i class="fas fa-sort-{{ $sortDir === 'asc' ? 'up' : 'down' }}"></i>
+                                @endif
+                            </a>
+                        </th>
+                        <th>
+                            <a href="{{ route('email-marketing.campaigns.show', array_merge(request()->except(['sort', 'dir']), ['campaign' => $campaign, 'sort' => 'opened_at', 'dir' => ($sortBy === 'opened_at' && $sortDir === 'desc') ? 'asc' : 'desc'])) }}"
+                               class="text-dark text-decoration-none">
+                                Opened
+                                @if($sortBy === 'opened_at')
+                                    <i class="fas fa-sort-{{ $sortDir === 'asc' ? 'up' : 'down' }}"></i>
+                                @endif
+                            </a>
+                        </th>
+                        <th>
+                            <a href="{{ route('email-marketing.campaigns.show', array_merge(request()->except(['sort', 'dir']), ['campaign' => $campaign, 'sort' => 'open_count', 'dir' => ($sortBy === 'open_count' && $sortDir === 'desc') ? 'asc' : 'desc'])) }}"
+                               class="text-dark text-decoration-none">
+                                Opens
+                                @if($sortBy === 'open_count')
+                                    <i class="fas fa-sort-{{ $sortDir === 'asc' ? 'up' : 'down' }}"></i>
+                                @endif
+                            </a>
+                        </th>
                         <th>Clicks</th>
                     </tr>
                 </thead>
-                <tbody id="sendsTable">
-                    @foreach($campaign->sends as $send)
-                        <tr class="send-row" data-status="{{ $send->status }}">
+                <tbody>
+                    @foreach($sends as $send)
+                        <tr>
                             <td>
                                 @if($send->lead)
                                     {{ $send->lead->company_name ?? $send->recipient_name }}
@@ -194,19 +245,29 @@
                                         <span class="badge bg-info">Opened</span>
                                         @break
                                     @case('failed')
-                                        <span class="badge bg-danger" title="{{ $send->error_message }}">
-                                            Failed
-                                        </span>
+                                        <span class="badge bg-danger">Failed</span>
+                                        @if($send->error_message)
+                                            <small class="d-block text-danger text-truncate" style="max-width: 200px;" title="{{ $send->error_message }}">
+                                                {{ Str::limit($send->error_message, 50) }}
+                                            </small>
+                                        @endif
+                                        @if($send->attempts)
+                                            <small class="text-muted">(попытка {{ $send->attempts }}/2)</small>
+                                        @endif
                                         @break
                                     @case('bounced')
-                                        <span class="badge bg-dark" title="{{ $send->error_message }}">
-                                            Bounced
-                                        </span>
+                                        <span class="badge bg-dark">Bounced</span>
+                                        @if($send->error_message)
+                                            <small class="d-block text-muted text-truncate" style="max-width: 200px;" title="{{ $send->error_message }}">
+                                                {{ Str::limit($send->error_message, 50) }}
+                                            </small>
+                                        @endif
                                         @break
                                     @case('skipped')
-                                        <span class="badge bg-secondary" title="{{ $send->error_message }}">
-                                            Skipped
-                                        </span>
+                                        <span class="badge bg-secondary">Skipped</span>
+                                        @if($send->error_message)
+                                            <small class="d-block text-muted">{{ $send->error_message }}</small>
+                                        @endif
                                         @break
                                 @endswitch
                             </td>
@@ -231,6 +292,11 @@
                 </tbody>
             </table>
         </div>
+        @if($sends->hasPages())
+            <div class="card-footer">
+                {{ $sends->links() }}
+            </div>
+        @endif
     </div>
 
     <!-- Click Statistics -->
@@ -295,23 +361,6 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Filter buttons
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-
-            const filter = this.dataset.filter;
-            document.querySelectorAll('.send-row').forEach(row => {
-                if (filter === 'all' || row.dataset.status === filter) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-        });
-    });
-
     // Start campaign
     const startBtn = document.getElementById('startCampaignBtn');
     if (startBtn) {
@@ -391,6 +440,35 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Resend failed
+    const resendBtn = document.getElementById('resendFailedBtn');
+    if (resendBtn) {
+        resendBtn.addEventListener('click', function() {
+            if (!confirm('Resend all failed emails?')) return;
+
+            this.disabled = true;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Resending...';
+
+            fetch('{{ route("email-marketing.campaigns.resend-failed", $campaign) }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.message);
+                    this.disabled = false;
+                    this.innerHTML = '<i class="fas fa-redo"></i> Resend Failed';
+                }
+            });
+        });
+    }
+
     // Auto-refresh if campaign is sending
     @if($campaign->status === 'sending')
         setInterval(() => {
@@ -401,15 +479,15 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <style>
-.filter-btn.active {
-    font-weight: bold;
-}
 .text-purple, .bg-purple {
     color: #6f42c1;
 }
 .bg-purple {
     background-color: #6f42c1 !important;
     color: #fff !important;
+}
+th a:hover {
+    text-decoration: underline !important;
 }
 </style>
 @endsection
