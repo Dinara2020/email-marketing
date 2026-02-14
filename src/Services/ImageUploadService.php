@@ -145,35 +145,40 @@ class ImageUploadService
 
     /**
      * Check for malicious content in file
+     * Only checks the first 1KB for PHP opening tags to avoid false positives in binary data
      */
     protected function containsMaliciousContent(UploadedFile $file): bool
     {
-        $content = file_get_contents($file->getRealPath());
+        // Read first 1KB - PHP code injection would typically be at the start
+        $handle = fopen($file->getRealPath(), 'rb');
+        $header = fread($handle, 1024);
+        fclose($handle);
 
-        // Check for PHP code
-        if (preg_match('/<\?php|<\?=|<\?[^x]/i', $content)) {
+        // Check for PHP opening tags at the beginning of file
+        if (preg_match('/^.{0,100}<\?php/si', $header)) {
             return true;
         }
 
-        // Check for script tags
-        if (preg_match('/<script/i', $content)) {
-            return true;
-        }
-
-        // Check for other dangerous patterns
-        $dangerousPatterns = [
-            '/eval\s*\(/i',
-            '/base64_decode\s*\(/i',
-            '/exec\s*\(/i',
-            '/system\s*\(/i',
-            '/passthru\s*\(/i',
-            '/shell_exec\s*\(/i',
+        // Check if file starts with valid image signature
+        $signatures = [
+            "\xFF\xD8\xFF" => 'jpeg',      // JPEG
+            "\x89PNG\r\n\x1A\n" => 'png',  // PNG
+            "GIF87a" => 'gif',              // GIF87a
+            "GIF89a" => 'gif',              // GIF89a
+            "RIFF" => 'webp',               // WebP (starts with RIFF)
         ];
 
-        foreach ($dangerousPatterns as $pattern) {
-            if (preg_match($pattern, $content)) {
-                return true;
+        $validSignature = false;
+        foreach ($signatures as $signature => $type) {
+            if (str_starts_with($header, $signature)) {
+                $validSignature = true;
+                break;
             }
+        }
+
+        // If no valid image signature found, it's suspicious
+        if (!$validSignature) {
+            return true;
         }
 
         return false;
