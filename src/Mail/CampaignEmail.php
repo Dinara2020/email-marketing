@@ -103,13 +103,6 @@ class CampaignEmail extends Mailable
                         </td>
                     </tr>
                 </table>
-                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width: 600px;">
-                    <tr>
-                        <td style="padding: 20px 40px; font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #999999; text-align: center;">
-                            <p style="margin: 0;">This email was sent by ' . htmlspecialchars(config('app.name', 'Email Marketing')) . '</p>
-                        </td>
-                    </tr>
-                </table>
             </td>
         </tr>
     </table>
