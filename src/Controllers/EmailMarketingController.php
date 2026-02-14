@@ -307,41 +307,25 @@ class EmailMarketingController extends Controller
         try {
             $modelInstance = new $leadModel;
             $primaryKey = $modelInstance->getKeyName();
-            $builder = $leadModel::query();
 
-            // Get table columns to filter valid search fields
-            $table = $modelInstance->getTable();
-            $columns = \Schema::getColumnListing($table);
-            $validSearchFields = array_intersect($searchFields, $columns);
-
-            // If no valid fields, just search by email
-            if (empty($validSearchFields)) {
-                $validSearchFields = ['email'];
-            }
-
-            // Search in valid fields only
-            $builder->where(function ($q) use ($query, $validSearchFields) {
-                foreach ($validSearchFields as $index => $field) {
-                    if ($index === 0) {
-                        $q->where($field, 'like', "%{$query}%");
-                    } else {
-                        $q->orWhere($field, 'like', "%{$query}%");
+            // Search by configured fields (user must configure only existing fields)
+            $leads = $leadModel::where(function ($q) use ($query, $searchFields) {
+                    foreach ($searchFields as $index => $field) {
+                        if ($index === 0) {
+                            $q->where($field, 'like', "%{$query}%");
+                        } else {
+                            $q->orWhere($field, 'like', "%{$query}%");
+                        }
                     }
-                }
-            });
-
-            $leads = $builder
+                })
                 ->whereNotNull('email')
                 ->where('email', '!=', '')
                 ->limit(20)
                 ->get()
-                ->map(function ($lead) use ($nameField, $columns, $primaryKey) {
-                    $name = in_array($nameField, $columns)
-                        ? ($lead->{$nameField} ?? $lead->email)
-                        : $lead->email;
+                ->map(function ($lead) use ($nameField, $primaryKey) {
                     return [
-                        'id' => $lead->{$primaryKey},
-                        'name' => $name,
+                        'id' => $lead->{$primaryKey} ?? $lead->getKey(),
+                        'name' => $lead->{$nameField} ?? $lead->email ?? '',
                         'email' => $lead->email,
                     ];
                 });
