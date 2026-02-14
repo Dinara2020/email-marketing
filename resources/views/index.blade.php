@@ -40,13 +40,23 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="card bg-secondary text-white">
                 <div class="card-body">
                     <h5 class="card-title">Templates</h5>
                     <h2>{{ $stats['templates_count'] }}</h2>
                 </div>
             </div>
+        </div>
+        <div class="col-md-2">
+            <a href="{{ route('email-marketing.unsubscribes') }}" class="text-decoration-none">
+                <div class="card bg-danger text-white">
+                    <div class="card-body">
+                        <h5 class="card-title">Отписки</h5>
+                        <h2>{{ $stats['unsubscribes_count'] }}</h2>
+                    </div>
+                </div>
+            </a>
         </div>
     </div>
 

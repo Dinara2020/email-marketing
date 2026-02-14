@@ -67,6 +67,7 @@ class EmailMarketingController extends Controller
             'total_sent' => EmailSend::whereIn('status', ['sent', 'opened'])->count(),
             'total_opened' => EmailSend::where('status', 'opened')->count(),
             'templates_count' => EmailTemplate::count(),
+            'unsubscribes_count' => EmailUnsubscribe::count(),
         ];
 
         $recentCampaigns = EmailCampaign::with('template')
@@ -528,5 +529,25 @@ class EmailMarketingController extends Controller
             'success' => true,
             'email' => $decodedEmail,
         ]);
+    }
+
+    // ==================== Unsubscribes Admin ====================
+
+    /**
+     * List all unsubscribed emails
+     */
+    public function unsubscribes()
+    {
+        $unsubscribes = EmailUnsubscribe::orderBy('created_at', 'desc')->paginate(50);
+        return view('email-marketing::unsubscribes.index', compact('unsubscribes'));
+    }
+
+    /**
+     * Remove email from unsubscribe list (resubscribe)
+     */
+    public function deleteUnsubscribe(EmailUnsubscribe $unsubscribe)
+    {
+        $unsubscribe->delete();
+        return back()->with('success', 'Email возвращён в рассылку');
     }
 }

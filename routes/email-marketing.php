@@ -68,4 +68,8 @@ Route::prefix(config('email-marketing.route_prefix', 'admin/email-marketing'))
         Route::get('/images', [EmailMarketingController::class, 'images'])->name('images');
         Route::post('/images/upload', [EmailMarketingController::class, 'uploadImage'])->name('images.upload');
         Route::delete('/images/{image}', [EmailMarketingController::class, 'deleteImage'])->name('images.delete');
+
+        // Unsubscribes
+        Route::get('/unsubscribes', [EmailMarketingController::class, 'unsubscribes'])->name('unsubscribes');
+        Route::delete('/unsubscribes/{unsubscribe}', [EmailMarketingController::class, 'deleteUnsubscribe'])->name('unsubscribes.delete');
     });
