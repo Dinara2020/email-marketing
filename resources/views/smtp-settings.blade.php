@@ -9,6 +9,13 @@
         </a>
     </div>
 
+    @if(!$canEdit)
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i>
+        SMTP settings are read from <code>.env</code> file. To enable editing from this panel, configure <code>EMAIL_MARKETING_COMPANY_MODEL</code>.
+    </div>
+    @endif
+
     <div class="row">
         <div class="col-md-8">
             <div class="card">
@@ -21,12 +28,12 @@
                                 <label class="form-label">SMTP Host *</label>
                                 <input type="text" name="SMTP_HOST" class="form-control"
                                        value="{{ $settings['SMTP_HOST'] ?? '' }}"
-                                       placeholder="smtp.example.com" required>
+                                       placeholder="smtp.example.com" {{ $canEdit ? 'required' : 'readonly' }}>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label">Port *</label>
                                 <input type="number" name="SMTP_PORT" class="form-control"
-                                       value="{{ $settings['SMTP_PORT'] ?? 587 }}" required>
+                                       value="{{ $settings['SMTP_PORT'] ?? 587 }}" {{ $canEdit ? 'required' : 'readonly' }}>
                             </div>
                         </div>
 
@@ -35,19 +42,19 @@
                                 <label class="form-label">Username</label>
                                 <input type="text" name="SMTP_USERNAME" class="form-control"
                                        value="{{ $settings['SMTP_USERNAME'] ?? '' }}"
-                                       placeholder="user@domain.com">
+                                       placeholder="user@domain.com" {{ $canEdit ? '' : 'readonly' }}>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">Password</label>
-                                <input type="password" name="SMTP_PASSWORD" class="form-control"
-                                       value="{{ $settings['SMTP_PASSWORD'] ?? '' }}"
-                                       placeholder="********">
+                                <input type="{{ $canEdit ? 'password' : 'text' }}" name="SMTP_PASSWORD" class="form-control"
+                                       value="{{ $canEdit ? ($settings['SMTP_PASSWORD'] ?? '') : '********' }}"
+                                       placeholder="********" {{ $canEdit ? '' : 'readonly' }}>
                             </div>
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label">Encryption</label>
-                            <select name="SMTP_ENCRYPTION" class="form-select">
+                            <select name="SMTP_ENCRYPTION" class="form-select" {{ $canEdit ? '' : 'disabled' }}>
                                 <option value="tls" {{ ($settings['SMTP_ENCRYPTION'] ?? 'tls') == 'tls' ? 'selected' : '' }}>TLS</option>
                                 <option value="ssl" {{ ($settings['SMTP_ENCRYPTION'] ?? '') == 'ssl' ? 'selected' : '' }}>SSL</option>
                                 <option value="" {{ ($settings['SMTP_ENCRYPTION'] ?? '') == '' ? 'selected' : '' }}>None</option>
@@ -61,13 +68,13 @@
                                 <label class="form-label">From Email *</label>
                                 <input type="email" name="SMTP_FROM_ADDRESS" class="form-control"
                                        value="{{ $settings['SMTP_FROM_ADDRESS'] ?? '' }}"
-                                       placeholder="noreply@domain.com" required>
+                                       placeholder="noreply@domain.com" {{ $canEdit ? 'required' : 'readonly' }}>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">From Name *</label>
                                 <input type="text" name="SMTP_FROM_NAME" class="form-control"
                                        value="{{ $settings['SMTP_FROM_NAME'] ?? '' }}"
-                                       placeholder="My Company" required>
+                                       placeholder="My Company" {{ $canEdit ? 'required' : 'readonly' }}>
                             </div>
                         </div>
 
@@ -75,9 +82,11 @@
                             <button type="button" class="btn btn-outline-secondary" id="testSmtpBtn">
                                 <i class="fas fa-vial"></i> Test Connection
                             </button>
+                            @if($canEdit)
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-save"></i> Save
                             </button>
+                            @endif
                         </div>
                     </form>
                 </div>
@@ -108,6 +117,12 @@
                         <li>Host: smtp.sendgrid.net</li>
                         <li>Port: 587 (TLS)</li>
                     </ul>
+
+                    <h6>Yandex</h6>
+                    <ul class="small text-muted">
+                        <li>Host: smtp.yandex.ru</li>
+                        <li>Port: 587 (TLS)</li>
+                    </ul>
                 </div>
             </div>
 
@@ -119,7 +134,9 @@
         </div>
     </div>
 </div>
+@endsection
 
+@push('scripts')
 <script>
 document.getElementById('testSmtpBtn').addEventListener('click', function() {
     const btn = this;
@@ -152,4 +169,4 @@ document.getElementById('testSmtpBtn').addEventListener('click', function() {
     });
 });
 </script>
-@endsection
+@endpush

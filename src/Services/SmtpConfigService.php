@@ -3,12 +3,11 @@
 namespace Dinara\EmailMarketing\Services;
 
 use Illuminate\Support\Facades\Config;
-use Illuminate\Support\Facades\DB;
 
 class SmtpConfigService
 {
     /**
-     * SMTP setting keys in company table
+     * SMTP setting keys
      */
     const KEYS = [
         'SMTP_HOST',
@@ -21,17 +20,38 @@ class SmtpConfigService
     ];
 
     /**
-     * Get the Company model class from config or use default
+     * Check if we have a company model configured for storing SMTP settings
      */
-    protected function getCompanyModel(): string
+    protected function hasCompanyModel(): bool
     {
-        return config('email-marketing.company_model', 'App\\Models\\Company');
+        $model = config('email-marketing.company_model');
+        return $model && class_exists($model);
+    }
+
+    /**
+     * Get the Company model class from config
+     */
+    protected function getCompanyModel(): ?string
+    {
+        return config('email-marketing.company_model');
+    }
+
+    /**
+     * Get SMTP settings - from database if company_model is configured, otherwise from .env
+     */
+    public function getSettings(): array
+    {
+        if ($this->hasCompanyModel()) {
+            return $this->getSettingsFromDatabase();
+        }
+
+        return $this->getSettingsFromEnv();
     }
 
     /**
      * Get SMTP settings from database
      */
-    public function getSettings(): array
+    protected function getSettingsFromDatabase(): array
     {
         $settings = [];
         $companyModel = $this->getCompanyModel();
@@ -45,10 +65,30 @@ class SmtpConfigService
     }
 
     /**
-     * Save SMTP settings to database
+     * Get SMTP settings from .env/config
      */
-    public function saveSettings(array $data): void
+    protected function getSettingsFromEnv(): array
     {
+        return [
+            'SMTP_HOST' => config('mail.mailers.smtp.host'),
+            'SMTP_PORT' => config('mail.mailers.smtp.port'),
+            'SMTP_USERNAME' => config('mail.mailers.smtp.username'),
+            'SMTP_PASSWORD' => config('mail.mailers.smtp.password'),
+            'SMTP_ENCRYPTION' => config('mail.mailers.smtp.encryption'),
+            'SMTP_FROM_ADDRESS' => config('mail.from.address'),
+            'SMTP_FROM_NAME' => config('mail.from.name'),
+        ];
+    }
+
+    /**
+     * Save SMTP settings to database (only works if company_model is configured)
+     */
+    public function saveSettings(array $data): bool
+    {
+        if (!$this->hasCompanyModel()) {
+            return false;
+        }
+
         $companyModel = $this->getCompanyModel();
 
         foreach (self::KEYS as $key) {
@@ -59,6 +99,8 @@ class SmtpConfigService
                 );
             }
         }
+
+        return true;
     }
 
     /**
@@ -132,5 +174,13 @@ class SmtpConfigService
     {
         $settings = $this->getSettings();
         return !empty($settings['SMTP_HOST']) && !empty($settings['SMTP_FROM_ADDRESS']);
+    }
+
+    /**
+     * Check if settings can be edited (only if company_model is configured)
+     */
+    public function canEditSettings(): bool
+    {
+        return $this->hasCompanyModel();
     }
 }
