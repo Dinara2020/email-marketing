@@ -19,7 +19,7 @@ return new class extends Migration
                 $table->string('subject');
                 $table->longText('body_html');
                 $table->longText('body_text')->nullable();
-                $table->json('variables')->nullable();
+                $table->text('variables')->nullable(); // JSON stored as text for MySQL < 5.7.8 compatibility
                 $table->boolean('is_active')->default(true);
                 $table->timestamps();
             });
@@ -54,7 +54,7 @@ return new class extends Migration
                 $table->unsignedBigInteger('hotel_id')->nullable();
                 $table->string('email');
                 $table->string('recipient_name')->nullable();
-                $table->enum('status', ['pending', 'sent', 'opened', 'failed', 'bounced'])->default('pending');
+                $table->enum('status', ['pending', 'sent', 'opened', 'failed', 'bounced', 'skipped'])->default('pending');
                 $table->uuid('tracking_id')->unique();
                 $table->timestamp('sent_at')->nullable();
                 $table->timestamp('opened_at')->nullable();
