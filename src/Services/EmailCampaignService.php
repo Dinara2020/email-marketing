@@ -7,6 +7,7 @@ use Dinara\EmailMarketing\Models\EmailSend;
 use Dinara\EmailMarketing\Models\EmailTemplate;
 use Dinara\EmailMarketing\Models\EmailClick;
 use Dinara\EmailMarketing\Jobs\SendCampaignEmail;
+use Dinara\EmailMarketing\Mail\CampaignEmail;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
 
@@ -104,11 +105,14 @@ class EmailCampaignService
             $trackingPixel = '<img src="' . $emailSend->getTrackingUrl() . '" width="1" height="1" style="display:none" alt="" />';
             $htmlWithTracking = $htmlWithClickTracking . $trackingPixel;
 
-            // Send email
-            Mail::html($htmlWithTracking, function ($message) use ($emailSend, $rendered) {
-                $message->to($emailSend->email, $emailSend->recipient_name)
-                    ->subject($rendered['subject']);
-            });
+            // Send email using Mailable for better deliverability
+            $mailable = new CampaignEmail(
+                htmlContent: $htmlWithTracking,
+                subject: $rendered['subject'],
+                trackingId: $emailSend->tracking_id
+            );
+
+            Mail::to($emailSend->email, $emailSend->recipient_name)->send($mailable);
 
             $emailSend->markAsSent();
 
@@ -152,10 +156,13 @@ class EmailCampaignService
 
             $rendered = $template->render($variables);
 
-            Mail::html($rendered['html'], function ($message) use ($testEmail, $rendered) {
-                $message->to($testEmail)
-                    ->subject('[TEST] ' . $rendered['subject']);
-            });
+            // Send using Mailable for better deliverability
+            $mailable = new CampaignEmail(
+                htmlContent: $rendered['html'],
+                subject: '[TEST] ' . $rendered['subject']
+            );
+
+            Mail::to($testEmail)->send($mailable);
 
             return ['success' => true, 'message' => 'Test email sent'];
         } catch (\Exception $e) {
