@@ -305,10 +305,12 @@ class EmailMarketingController extends Controller
         $nameField = config('email-marketing.lead_name_field', 'email');
 
         try {
+            $modelInstance = new $leadModel;
+            $primaryKey = $modelInstance->getKeyName();
             $builder = $leadModel::query();
 
             // Get table columns to filter valid search fields
-            $table = (new $leadModel)->getTable();
+            $table = $modelInstance->getTable();
             $columns = \Schema::getColumnListing($table);
             $validSearchFields = array_intersect($searchFields, $columns);
 
@@ -333,12 +335,12 @@ class EmailMarketingController extends Controller
                 ->where('email', '!=', '')
                 ->limit(20)
                 ->get()
-                ->map(function ($lead) use ($nameField, $columns) {
+                ->map(function ($lead) use ($nameField, $columns, $primaryKey) {
                     $name = in_array($nameField, $columns)
                         ? ($lead->{$nameField} ?? $lead->email)
                         : $lead->email;
                     return [
-                        'id' => $lead->id,
+                        'id' => $lead->{$primaryKey},
                         'name' => $name,
                         'email' => $lead->email,
                     ];
