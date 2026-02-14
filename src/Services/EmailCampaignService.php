@@ -398,6 +398,16 @@ class EmailCampaignService
 
             Mail::to($emailSend->email, $emailSend->recipient_name)->send($mailable);
 
+            // Close SMTP connection after each email (sweb: max 100 emails per connection)
+            $mailer = Mail::mailer();
+            if (method_exists($mailer, 'getSymfonyTransport')) {
+                try {
+                    $mailer->getSymfonyTransport()->stop();
+                } catch (\Exception $e) {
+                    // Ignore transport stop errors
+                }
+            }
+
             $emailSend->markAsSent();
 
             return true;
