@@ -12,6 +12,7 @@ class EmailMarketingServiceProvider extends ServiceProvider
 
         $this->app->singleton(Services\SmtpConfigService::class);
         $this->app->singleton(Services\EmailCampaignService::class);
+        $this->app->singleton(Services\ImageUploadService::class);
     }
 
     public function boot(): void

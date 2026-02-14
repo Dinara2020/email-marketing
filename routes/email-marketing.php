@@ -56,4 +56,9 @@ Route::prefix(config('email-marketing.route_prefix', 'admin/email-marketing'))
 
         // Lead/Hotel Search API
         Route::get('/hotels/search', [EmailMarketingController::class, 'searchHotels'])->name('hotels.search');
+
+        // Image Upload
+        Route::get('/images', [EmailMarketingController::class, 'images'])->name('images');
+        Route::post('/images/upload', [EmailMarketingController::class, 'uploadImage'])->name('images.upload');
+        Route::delete('/images/{image}', [EmailMarketingController::class, 'deleteImage'])->name('images.delete');
     });

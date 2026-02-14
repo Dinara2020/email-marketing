@@ -74,6 +74,21 @@
                     </div>
                 </div>
 
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h6 class="mb-0">Upload Image</h6>
+                    </div>
+                    <div class="card-body">
+                        <input type="file" id="imageUpload" class="form-control form-control-sm mb-2"
+                               accept="image/jpeg,image/png,image/gif,image/webp">
+                        <button type="button" class="btn btn-sm btn-outline-primary w-100" id="uploadImageBtn">
+                            <i class="fas fa-upload"></i> Upload
+                        </button>
+                        <div id="uploadResult" class="mt-2"></div>
+                        <div id="uploadedImages" class="mt-2"></div>
+                    </div>
+                </div>
+
                 <div class="card">
                     <div class="card-header">
                         <h6 class="mb-0">Test Email</h6>
@@ -192,6 +207,86 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('previewSubject').textContent = previewSubject;
         document.getElementById('previewBody').innerHTML = previewBody;
         new bootstrap.Modal(document.getElementById('previewModal')).show();
+    });
+
+    // Image upload
+    document.getElementById('uploadImageBtn').addEventListener('click', function() {
+        const fileInput = document.getElementById('imageUpload');
+        const file = fileInput.files[0];
+
+        if (!file) {
+            alert('Please select an image file');
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('image', file);
+
+        const btn = this;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+
+        fetch('{{ route("email-marketing.images.upload") }}', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            const resultDiv = document.getElementById('uploadResult');
+
+            if (data.success) {
+                resultDiv.innerHTML = '<div class="alert alert-success py-1 small">Image uploaded!</div>';
+
+                // Add to uploaded images list
+                const imagesDiv = document.getElementById('uploadedImages');
+                const imgHtml = `
+                    <div class="d-flex align-items-center mb-2 p-2 border rounded">
+                        <img src="${data.url}" style="width: 40px; height: 40px; object-fit: cover;" class="me-2 rounded">
+                        <button type="button" class="btn btn-sm btn-outline-secondary copy-url-btn" data-url="${data.url}">
+                            <i class="fas fa-copy"></i> Copy URL
+                        </button>
+                    </div>
+                `;
+                imagesDiv.insertAdjacentHTML('afterbegin', imgHtml);
+
+                // Insert into editor
+                if (window.editor) {
+                    const imgTag = '<img src="' + data.url + '" alt="" style="max-width: 100%;">';
+                    window.editor.model.change(writer => {
+                        const viewFragment = window.editor.data.processor.toView(imgTag);
+                        const modelFragment = window.editor.data.toModel(viewFragment);
+                        window.editor.model.insertContent(modelFragment);
+                    });
+                }
+
+                fileInput.value = '';
+            } else {
+                resultDiv.innerHTML = '<div class="alert alert-danger py-1 small">' + (data.error || 'Upload failed') + '</div>';
+            }
+        })
+        .catch(error => {
+            document.getElementById('uploadResult').innerHTML = '<div class="alert alert-danger py-1 small">Upload error</div>';
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-upload"></i> Upload';
+        });
+    });
+
+    // Copy URL to clipboard
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.copy-url-btn')) {
+            const btn = e.target.closest('.copy-url-btn');
+            const url = btn.dataset.url;
+            navigator.clipboard.writeText(url).then(() => {
+                const originalHtml = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                setTimeout(() => btn.innerHTML = originalHtml, 1500);
+            });
+        }
     });
 });
 </script>

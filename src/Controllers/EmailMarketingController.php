@@ -7,8 +7,10 @@ use Dinara\EmailMarketing\Models\EmailCampaign;
 use Dinara\EmailMarketing\Models\EmailSend;
 use Dinara\EmailMarketing\Models\EmailTemplate;
 use Dinara\EmailMarketing\Models\EmailClick;
+use Dinara\EmailMarketing\Models\EmailImage;
 use Dinara\EmailMarketing\Services\EmailCampaignService;
 use Dinara\EmailMarketing\Services\SmtpConfigService;
+use Dinara\EmailMarketing\Services\ImageUploadService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
@@ -16,11 +18,16 @@ class EmailMarketingController extends Controller
 {
     protected SmtpConfigService $smtpConfig;
     protected EmailCampaignService $campaignService;
+    protected ImageUploadService $imageService;
 
-    public function __construct(SmtpConfigService $smtpConfig, EmailCampaignService $campaignService)
-    {
+    public function __construct(
+        SmtpConfigService $smtpConfig,
+        EmailCampaignService $campaignService,
+        ImageUploadService $imageService
+    ) {
         $this->smtpConfig = $smtpConfig;
         $this->campaignService = $campaignService;
+        $this->imageService = $imageService;
     }
 
     /**
@@ -332,5 +339,71 @@ class EmailMarketingController extends Controller
         }
 
         return redirect()->away($url);
+    }
+
+    // ==================== Image Upload ====================
+
+    /**
+     * List uploaded images
+     */
+    public function images(): JsonResponse
+    {
+        $images = $this->imageService->getImages();
+
+        return response()->json([
+            'images' => $images->map(fn($img) => [
+                'id' => $img->id,
+                'url' => $img->url,
+                'name' => $img->original_name,
+                'size' => $img->human_size,
+                'created_at' => $img->created_at->format('d.m.Y H:i'),
+            ]),
+        ]);
+    }
+
+    /**
+     * Upload image for email template
+     */
+    public function uploadImage(Request $request): JsonResponse
+    {
+        $request->validate([
+            'image' => 'required|file|image|max:2048',
+        ]);
+
+        $result = $this->imageService->upload($request->file('image'));
+
+        if (!$result['success']) {
+            return response()->json([
+                'success' => false,
+                'error' => $result['message'],
+            ], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'url' => $result['url'],
+            'image' => [
+                'id' => $result['image']->id,
+                'url' => $result['url'],
+                'name' => $result['image']->original_name,
+            ],
+        ]);
+    }
+
+    /**
+     * Delete uploaded image
+     */
+    public function deleteImage(EmailImage $image): JsonResponse
+    {
+        $deleted = $this->imageService->delete($image);
+
+        if (!$deleted) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Cannot delete this image',
+            ], 403);
+        }
+
+        return response()->json(['success' => true]);
     }
 }

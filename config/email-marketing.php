@@ -80,4 +80,12 @@ return [
     'branding' => [
         'logo_type' => 'company', // Used with images_model to find logo
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Image Upload Settings
+    |--------------------------------------------------------------------------
+    */
+    'image_disk' => env('EMAIL_MARKETING_IMAGE_DISK', 'public'),
+    'image_max_size' => env('EMAIL_MARKETING_IMAGE_MAX_SIZE', 2048), // KB
 ];
