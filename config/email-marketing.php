@@ -32,6 +32,12 @@ return [
     // Database connection for leads (null = default connection)
     'lead_connection' => env('EMAIL_MARKETING_LEAD_CONNECTION', null),
 
+    // Fields to search in lead model (customize for your model)
+    'lead_search_fields' => ['company_name', 'email', 'address', 'fio', 'name'],
+
+    // Field to use as recipient name in emails
+    'lead_name_field' => 'fio', // or 'company_name', 'name', etc.
+
     /*
     |--------------------------------------------------------------------------
     | Multi-tenancy (SaaS)

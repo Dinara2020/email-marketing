@@ -296,15 +296,21 @@ class EmailMarketingController extends Controller
     {
         $query = $request->get('q', '');
         $leadModel = $this->getLeadModel();
+        $searchFields = config('email-marketing.lead_search_fields', ['company_name', 'email', 'address']);
+        $nameField = config('email-marketing.lead_name_field', 'company_name');
 
-        $leads = $leadModel::where(function ($q) use ($query) {
-                $q->where('company_name', 'like', "%{$query}%")
-                    ->orWhere('email', 'like', "%{$query}%")
-                    ->orWhere('address', 'like', "%{$query}%");
+        $leads = $leadModel::where(function ($q) use ($query, $searchFields) {
+                foreach ($searchFields as $index => $field) {
+                    if ($index === 0) {
+                        $q->where($field, 'like', "%{$query}%");
+                    } else {
+                        $q->orWhere($field, 'like', "%{$query}%");
+                    }
+                }
             })
             ->whereNotNull('email')
             ->where('email', '!=', '')
-            ->select('id', 'company_name as name', 'email', 'address as city')
+            ->selectRaw("id, {$nameField} as name, email")
             ->limit(20)
             ->get();
 

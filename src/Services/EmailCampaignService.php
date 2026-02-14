@@ -30,6 +30,15 @@ class EmailCampaignService
     }
 
     /**
+     * Get recipient name from lead using configured field
+     */
+    protected function getLeadName($lead): string
+    {
+        $nameField = config('email-marketing.lead_name_field', 'company_name');
+        return $lead->{$nameField} ?? $lead->company_name ?? $lead->name ?? '';
+    }
+
+    /**
      * Get the Images model class from config
      */
     protected function getImagesModel(): ?string
@@ -85,7 +94,7 @@ class EmailCampaignService
                 $recipientData[] = [
                     'lead_id' => $leadId,
                     'email' => $lead->email,
-                    'name' => $lead->manager_name ?? $lead->company_name ?? '',
+                    'name' => $this->getLeadName($lead),
                 ];
                 $validRecipients++;
             }
@@ -185,7 +194,7 @@ class EmailCampaignService
                     'campaign_id' => $campaign->id,
                     'hotel_id' => $lead->id,
                     'email' => $lead->email,
-                    'recipient_name' => $lead->manager_name ?? $lead->company_name ?? '',
+                    'recipient_name' => $this->getLeadName($lead),
                     'status' => EmailSend::STATUS_PENDING,
                 ]);
             }
@@ -423,7 +432,7 @@ class EmailCampaignService
 
         return [
             'hotel_name' => $lead->company_name ?? '',
-            'contact_name' => $lead->manager_name ?? $lead->company_name ?? '',
+            'contact_name' => $this->getLeadName($lead),
             'contact_email' => $lead->email ?? '',
             'hotel_city' => '',
             'hotel_address' => $lead->address ?? '',
