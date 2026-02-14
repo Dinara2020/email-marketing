@@ -140,6 +140,10 @@ class EmailCampaignService
         // Get unsubscribed emails list
         $unsubscribedEmails = EmailUnsubscribe::pluck('email')->map(fn($e) => strtolower($e))->toArray();
 
+        // Get primary key for ordering
+        $modelInstance = new $leadModel;
+        $primaryKey = $modelInstance->getKeyName();
+
         // Query all leads with valid email
         $query = $leadModel::whereNotNull('email')
             ->where('email', '!=', '');
@@ -178,7 +182,7 @@ class EmailCampaignService
         $totalCount = 0;
 
         // Use chunking for large datasets
-        $query->orderBy('id')->chunk(500, function ($leads) use ($campaign, &$seenEmails, &$totalCount) {
+        $query->orderBy($primaryKey)->chunk(500, function ($leads) use ($campaign, &$seenEmails, &$totalCount, $primaryKey) {
             foreach ($leads as $lead) {
                 $email = strtolower(trim($lead->email));
 
@@ -192,7 +196,7 @@ class EmailCampaignService
 
                 EmailSend::create([
                     'campaign_id' => $campaign->id,
-                    'hotel_id' => $lead->id,
+                    'hotel_id' => $lead->getKey(),
                     'email' => $lead->email,
                     'recipient_name' => $this->getLeadName($lead),
                     'status' => EmailSend::STATUS_PENDING,
