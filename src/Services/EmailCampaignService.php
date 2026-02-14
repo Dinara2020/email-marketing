@@ -22,25 +22,17 @@ class EmailCampaignService
     /**
      * Get the Lead model class from config
      */
-    protected function getLeadModel(): string
+    protected function getLeadModel(): ?string
     {
-        return config('email-marketing.lead_model', 'App\\Models\\MainCrm\\Lead');
-    }
-
-    /**
-     * Get the Company model class from config
-     */
-    protected function getCompanyModel(): string
-    {
-        return config('email-marketing.company_model', 'App\\Models\\Company');
+        return config('email-marketing.lead_model');
     }
 
     /**
      * Get the Images model class from config
      */
-    protected function getImagesModel(): string
+    protected function getImagesModel(): ?string
     {
-        return config('email-marketing.images_model', 'App\\Models\\Images');
+        return config('email-marketing.images_model');
     }
 
     /**
@@ -57,6 +49,10 @@ class EmailCampaignService
 
         $leadModel = $this->getLeadModel();
 
+        if (!$leadModel || !class_exists($leadModel)) {
+            return $campaign;
+        }
+
         // Create email sends for each lead
         foreach ($hotelIds as $leadId) {
             $lead = $leadModel::find($leadId);
@@ -65,7 +61,7 @@ class EmailCampaignService
                     'campaign_id' => $campaign->id,
                     'hotel_id' => $leadId,
                     'email' => $lead->email,
-                    'recipient_name' => $lead->manager_name ?? $lead->company_name,
+                    'recipient_name' => $lead->manager_name ?? $lead->company_name ?? '',
                     'status' => EmailSend::STATUS_PENDING,
                 ]);
             }
@@ -89,10 +85,14 @@ class EmailCampaignService
             $template = $campaign->template;
 
             $leadModel = $this->getLeadModel();
-            $lead = $leadModel::find($emailSend->hotel_id);
+            $lead = ($leadModel && class_exists($leadModel))
+                ? $leadModel::find($emailSend->hotel_id)
+                : null;
 
             // Prepare template variables
-            $variables = $this->prepareVariables($lead);
+            $variables = $lead
+                ? $this->prepareVariables($lead)
+                : $this->getDummyVariables();
 
             // Render template
             $rendered = $template->render($variables);
@@ -138,12 +138,16 @@ class EmailCampaignService
             $template = EmailTemplate::findOrFail($templateId);
 
             // Use lead data or dummy data
+            $variables = $this->getDummyVariables();
+
             if ($hotelId) {
                 $leadModel = $this->getLeadModel();
-                $lead = $leadModel::find($hotelId);
-                $variables = $this->prepareVariables($lead);
-            } else {
-                $variables = $this->getDummyVariables();
+                if ($leadModel && class_exists($leadModel)) {
+                    $lead = $leadModel::find($hotelId);
+                    if ($lead) {
+                        $variables = $this->prepareVariables($lead);
+                    }
+                }
             }
 
             $rendered = $template->render($variables);
@@ -220,19 +224,9 @@ class EmailCampaignService
      */
     public function prepareVariables($lead): array
     {
-        $companyModel = $this->getCompanyModel();
-        $imagesModel = $this->getImagesModel();
-
-        $senderName = $companyModel::where('key', 'SMTP_FROM_NAME')->first();
-        $companyName = $companyModel::where('key', 'site_title')->first();
-
-        $logo = null;
-        if (class_exists($imagesModel)) {
-            $logoType = config('email-marketing.company_settings.logo_type', 'company');
-            $logo = $imagesModel::where('type', $logoType)->first();
-        }
-
+        $smtpSettings = $this->smtpConfig->getSettings();
         $siteUrl = config('app.url');
+        $logo = $this->getLogo();
 
         return [
             'hotel_name' => $lead->company_name ?? '',
@@ -241,11 +235,11 @@ class EmailCampaignService
             'hotel_city' => '',
             'hotel_address' => $lead->address ?? '',
             'current_date' => now()->format('d.m.Y'),
-            'sender_name' => $senderName->value ?? 'Team',
-            'sender_company' => $companyName->value ?? config('app.name'),
-            'logo_url' => $logo ? (str_starts_with($logo->src, 'http') ? $logo->src : $siteUrl . $logo->src) : '',
+            'sender_name' => $smtpSettings['SMTP_FROM_NAME'] ?? config('app.name'),
+            'sender_company' => $smtpSettings['SMTP_FROM_NAME'] ?? config('app.name'),
+            'logo_url' => $logo,
             'site_url' => $siteUrl,
-            'site_name' => $companyName->value ?? config('app.name'),
+            'site_name' => config('app.name'),
         ];
     }
 
@@ -254,17 +248,9 @@ class EmailCampaignService
      */
     public function getDummyVariables(): array
     {
-        $companyModel = $this->getCompanyModel();
-        $imagesModel = $this->getImagesModel();
-
-        $logo = null;
-        if (class_exists($imagesModel)) {
-            $logoType = config('email-marketing.company_settings.logo_type', 'company');
-            $logo = $imagesModel::where('type', $logoType)->first();
-        }
-
+        $smtpSettings = $this->smtpConfig->getSettings();
         $siteUrl = config('app.url');
-        $companyName = $companyModel::where('key', 'site_title')->first();
+        $logo = $this->getLogo();
 
         return [
             'hotel_name' => 'Example Hotel',
@@ -273,12 +259,34 @@ class EmailCampaignService
             'hotel_city' => 'Moscow',
             'hotel_address' => '123 Example Street',
             'current_date' => now()->format('d.m.Y'),
-            'sender_name' => 'Service Team',
-            'sender_company' => $companyName->value ?? config('app.name'),
-            'logo_url' => $logo ? (str_starts_with($logo->src, 'http') ? $logo->src : $siteUrl . $logo->src) : '',
+            'sender_name' => $smtpSettings['SMTP_FROM_NAME'] ?? config('app.name'),
+            'sender_company' => $smtpSettings['SMTP_FROM_NAME'] ?? config('app.name'),
+            'logo_url' => $logo,
             'site_url' => $siteUrl,
-            'site_name' => $companyName->value ?? config('app.name'),
+            'site_name' => config('app.name'),
         ];
+    }
+
+    /**
+     * Get logo URL from images model if configured
+     */
+    protected function getLogo(): string
+    {
+        $imagesModel = $this->getImagesModel();
+
+        if (!$imagesModel || !class_exists($imagesModel)) {
+            return '';
+        }
+
+        $logoType = config('email-marketing.branding.logo_type', 'company');
+        $logo = $imagesModel::where('type', $logoType)->first();
+
+        if (!$logo || !$logo->src) {
+            return '';
+        }
+
+        $siteUrl = config('app.url');
+        return str_starts_with($logo->src, 'http') ? $logo->src : $siteUrl . $logo->src;
     }
 
     /**
