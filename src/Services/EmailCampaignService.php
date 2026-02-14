@@ -516,7 +516,7 @@ class EmailCampaignService
      */
     protected function wrapLinksWithTracking(string $html, EmailSend $emailSend): string
     {
-        $trackingBase = route('email-marketing.click', ['id' => $emailSend->tracking_id]);
+        $trackingBase = $emailSend->getClickTrackingUrl();
 
         // Find all href attributes and wrap them
         return preg_replace_callback(

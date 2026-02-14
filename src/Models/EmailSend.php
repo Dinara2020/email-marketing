@@ -194,7 +194,27 @@ class EmailSend extends Model
      */
     public function getTrackingUrl(): string
     {
+        $publicUrl = config('email-marketing.public_url');
+
+        if ($publicUrl) {
+            return rtrim($publicUrl, '/') . '/email/track/' . $this->tracking_id;
+        }
+
         return route('email-marketing.track', ['id' => $this->tracking_id]);
+    }
+
+    /**
+     * Get click tracking base URL
+     */
+    public function getClickTrackingUrl(): string
+    {
+        $publicUrl = config('email-marketing.public_url');
+
+        if ($publicUrl) {
+            return rtrim($publicUrl, '/') . '/email/click/' . $this->tracking_id;
+        }
+
+        return route('email-marketing.click', ['id' => $this->tracking_id]);
     }
 
     public function isPending(): bool

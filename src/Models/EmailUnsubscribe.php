@@ -84,6 +84,16 @@ class EmailUnsubscribe extends Model
     {
         $token = static::generateToken($email, $tenantId);
 
+        $publicUrl = config('email-marketing.public_url');
+
+        if ($publicUrl) {
+            // Use custom public URL
+            return rtrim($publicUrl, '/') . '/email/unsubscribe?' . http_build_query([
+                'email' => base64_encode($email),
+                'token' => $token,
+            ]);
+        }
+
         return route('email-marketing.unsubscribe', [
             'email' => base64_encode($email),
             'token' => $token,

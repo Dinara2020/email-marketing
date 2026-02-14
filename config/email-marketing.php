@@ -33,7 +33,7 @@ return [
     'lead_connection' => env('EMAIL_MARKETING_LEAD_CONNECTION', null),
 
     // Fields to search in lead model (customize for your model)
-    'lead_search_fields' => ['company_name', 'email', 'address', 'fio', 'name'],
+    'lead_search_fields' => ['email', 'fio'],
 
     // Field to use as recipient name in emails
     'lead_name_field' => 'fio', // or 'company_name', 'name', etc.
@@ -68,6 +68,9 @@ return [
     | Admin Panel Settings
     |--------------------------------------------------------------------------
     */
+
+    // Public URL for email links (unsubscribe, tracking) - use if different from APP_URL
+    'public_url' => env('EMAIL_MARKETING_PUBLIC_URL', null),
 
     // Admin route prefix
     'route_prefix' => env('EMAIL_MARKETING_ROUTE_PREFIX', 'admin/email-marketing'),
