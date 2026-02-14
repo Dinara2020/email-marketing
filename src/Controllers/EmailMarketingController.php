@@ -296,10 +296,19 @@ class EmailMarketingController extends Controller
     {
         $query = $request->get('q', '');
         $leadModel = $this->getLeadModel();
-        $searchFields = config('email-marketing.lead_search_fields', ['company_name', 'email', 'address']);
-        $nameField = config('email-marketing.lead_name_field', 'company_name');
 
-        $leads = $leadModel::where(function ($q) use ($query, $searchFields) {
+        if (!$leadModel || !class_exists($leadModel)) {
+            return response()->json([]);
+        }
+
+        $searchFields = config('email-marketing.lead_search_fields', ['email']);
+        $nameField = config('email-marketing.lead_name_field', 'email');
+
+        try {
+            $builder = $leadModel::query();
+
+            // Search in configured fields
+            $builder->where(function ($q) use ($query, $searchFields) {
                 foreach ($searchFields as $index => $field) {
                     if ($index === 0) {
                         $q->where($field, 'like', "%{$query}%");
@@ -307,14 +316,25 @@ class EmailMarketingController extends Controller
                         $q->orWhere($field, 'like', "%{$query}%");
                     }
                 }
-            })
-            ->whereNotNull('email')
-            ->where('email', '!=', '')
-            ->selectRaw("id, {$nameField} as name, email")
-            ->limit(20)
-            ->get();
+            });
 
-        return response()->json($leads);
+            $leads = $builder
+                ->whereNotNull('email')
+                ->where('email', '!=', '')
+                ->limit(20)
+                ->get()
+                ->map(function ($lead) use ($nameField) {
+                    return [
+                        'id' => $lead->id,
+                        'name' => $lead->{$nameField} ?? $lead->email,
+                        'email' => $lead->email,
+                    ];
+                });
+
+            return response()->json($leads);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 
     // ==================== Tracking (Public Routes) ====================
