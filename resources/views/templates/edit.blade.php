@@ -9,7 +9,7 @@
         </a>
     </div>
 
-    <form action="{{ route('email-marketing.templates.update', $template) }}" method="POST">
+    <form action="{{ route('email-marketing.templates.update', $template) }}" method="POST" id="templateForm">
         @csrf
         @method('PUT')
 
@@ -32,8 +32,8 @@
 
                         <div class="mb-3">
                             <label class="form-label">Email Body (HTML) *</label>
-                            <textarea name="body_html" id="body_html" class="form-control" rows="15"
-                                      required>{{ old('body_html', $template->body_html) }}</textarea>
+                            <textarea name="body_html" id="body_html" class="form-control" rows="15">{{ old('body_html', $template->body_html) }}</textarea>
+                            <div id="bodyError" class="invalid-feedback">Please enter email body content</div>
                         </div>
 
                         <div class="mb-3">
@@ -158,11 +158,39 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .then(editor => {
                 window.editor = editor;
+
+                // Sync CKEditor content to textarea
+                editor.model.document.on('change:data', () => {
+                    document.querySelector('#body_html').value = editor.getData();
+                });
             })
             .catch(error => {
                 console.error('CKEditor error:', error);
             });
     }
+
+    // Form validation
+    document.getElementById('templateForm').addEventListener('submit', function(e) {
+        // Sync CKEditor content
+        if (window.editor) {
+            document.querySelector('#body_html').value = window.editor.getData();
+        }
+
+        const bodyContent = document.querySelector('#body_html').value.trim();
+        const bodyError = document.getElementById('bodyError');
+        const textarea = document.querySelector('#body_html');
+
+        if (!bodyContent) {
+            e.preventDefault();
+            bodyError.style.display = 'block';
+            textarea.classList.add('is-invalid');
+            document.querySelector('.ck-editor__editable')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return false;
+        }
+
+        bodyError.style.display = 'none';
+        textarea.classList.remove('is-invalid');
+    });
 
     // Insert variable
     document.querySelectorAll('.var-btn').forEach(btn => {
