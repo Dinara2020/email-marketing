@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -11,7 +12,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (Schema::hasTable('email_sends') && !Schema::hasColumn('email_sends', 'attempts')) {
+        // Check column existence without Schema::hasColumn (MySQL < 5.7.8 compatibility)
+        $columns = DB::select("SHOW COLUMNS FROM email_sends LIKE 'attempts'");
+
+        if (empty($columns)) {
             Schema::table('email_sends', function (Blueprint $table) {
                 $table->unsignedTinyInteger('attempts')->default(0)->after('status');
             });
@@ -23,7 +27,9 @@ return new class extends Migration
      */
     public function down(): void
     {
-        if (Schema::hasColumn('email_sends', 'attempts')) {
+        $columns = DB::select("SHOW COLUMNS FROM email_sends LIKE 'attempts'");
+
+        if (!empty($columns)) {
             Schema::table('email_sends', function (Blueprint $table) {
                 $table->dropColumn('attempts');
             });
