@@ -41,6 +41,10 @@ class EmailSend extends Model
     {
         parent::boot();
 
+        static::addGlobalScope('orderByIdDesc', function ($query) {
+            $query->orderBy('id', 'desc');
+        });
+
         static::creating(function ($model) {
             if (empty($model->tracking_id)) {
                 $model->tracking_id = Str::uuid()->toString();

@@ -33,6 +33,15 @@ class EmailCampaign extends Model
     const STATUS_PAUSED = 'paused';
     const STATUS_COMPLETED = 'completed';
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::addGlobalScope('orderByIdDesc', function ($query) {
+            $query->orderBy('id', 'desc');
+        });
+    }
+
     public function template()
     {
         return $this->belongsTo(EmailTemplate::class, 'template_id');
