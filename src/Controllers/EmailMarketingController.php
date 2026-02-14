@@ -471,6 +471,11 @@ class EmailMarketingController extends Controller
         $emailSend = EmailSend::where('tracking_id', $trackingId)->first();
 
         if ($emailSend) {
+            // If clicked, they definitely opened - mark as opened if not already
+            if ($emailSend->status === 'sent') {
+                $emailSend->markAsOpened($request->ip(), $request->userAgent());
+            }
+
             EmailClick::create([
                 'email_send_id' => $emailSend->id,
                 'url' => $url,
