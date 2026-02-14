@@ -246,20 +246,20 @@
                                         @break
                                     @case('failed')
                                         <span class="badge bg-danger">Failed</span>
-                                        @if($send->error_message)
-                                            <small class="d-block text-danger text-truncate" style="max-width: 200px;" title="{{ $send->error_message }}">
-                                                {{ Str::limit($send->error_message, 50) }}
-                                            </small>
-                                        @endif
                                         @if($send->attempts)
-                                            <small class="text-muted">(попытка {{ $send->attempts }}/2)</small>
+                                            <small class="text-muted">({{ $send->attempts }}/2)</small>
+                                        @endif
+                                        @if($send->error_message)
+                                            <small class="d-block text-danger" style="max-width: 400px; word-break: break-word;">
+                                                {{ $send->error_message }}
+                                            </small>
                                         @endif
                                         @break
                                     @case('bounced')
                                         <span class="badge bg-dark">Bounced</span>
                                         @if($send->error_message)
-                                            <small class="d-block text-muted text-truncate" style="max-width: 200px;" title="{{ $send->error_message }}">
-                                                {{ Str::limit($send->error_message, 50) }}
+                                            <small class="d-block text-muted" style="max-width: 400px; word-break: break-word;">
+                                                {{ $send->error_message }}
                                             </small>
                                         @endif
                                         @break
