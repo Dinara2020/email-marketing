@@ -307,9 +307,19 @@ class EmailMarketingController extends Controller
         try {
             $builder = $leadModel::query();
 
-            // Search in configured fields
-            $builder->where(function ($q) use ($query, $searchFields) {
-                foreach ($searchFields as $index => $field) {
+            // Get table columns to filter valid search fields
+            $table = (new $leadModel)->getTable();
+            $columns = \Schema::getColumnListing($table);
+            $validSearchFields = array_intersect($searchFields, $columns);
+
+            // If no valid fields, just search by email
+            if (empty($validSearchFields)) {
+                $validSearchFields = ['email'];
+            }
+
+            // Search in valid fields only
+            $builder->where(function ($q) use ($query, $validSearchFields) {
+                foreach ($validSearchFields as $index => $field) {
                     if ($index === 0) {
                         $q->where($field, 'like', "%{$query}%");
                     } else {
@@ -323,10 +333,13 @@ class EmailMarketingController extends Controller
                 ->where('email', '!=', '')
                 ->limit(20)
                 ->get()
-                ->map(function ($lead) use ($nameField) {
+                ->map(function ($lead) use ($nameField, $columns) {
+                    $name = in_array($nameField, $columns)
+                        ? ($lead->{$nameField} ?? $lead->email)
+                        : $lead->email;
                     return [
                         'id' => $lead->id,
-                        'name' => $lead->{$nameField} ?? $lead->email,
+                        'name' => $name,
                         'email' => $lead->email,
                     ];
                 });
