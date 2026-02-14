@@ -2,105 +2,78 @@
 
 namespace Dinara\EmailMarketing\Services;
 
+use Dinara\EmailMarketing\Models\SmtpSetting;
 use Illuminate\Support\Facades\Config;
 
 class SmtpConfigService
 {
     /**
-     * SMTP setting keys
+     * Current tenant ID (for SaaS multi-tenancy)
      */
-    const KEYS = [
-        'SMTP_HOST',
-        'SMTP_PORT',
-        'SMTP_USERNAME',
-        'SMTP_PASSWORD',
-        'SMTP_ENCRYPTION',
-        'SMTP_FROM_ADDRESS',
-        'SMTP_FROM_NAME',
-    ];
+    protected ?string $tenantId = null;
 
     /**
-     * Check if we have a company model configured for storing SMTP settings
+     * Set tenant ID for multi-tenant SaaS
      */
-    protected function hasCompanyModel(): bool
+    public function setTenant(?string $tenantId): self
     {
-        $model = config('email-marketing.company_model');
-        return $model && class_exists($model);
+        $this->tenantId = $tenantId;
+        return $this;
     }
 
     /**
-     * Get the Company model class from config
+     * Get current tenant ID
      */
-    protected function getCompanyModel(): ?string
+    public function getTenantId(): ?string
     {
-        return config('email-marketing.company_model');
+        // Allow override via config/callback
+        $resolver = config('email-marketing.tenant_resolver');
+
+        if ($resolver && is_callable($resolver)) {
+            return $resolver();
+        }
+
+        return $this->tenantId;
     }
 
     /**
-     * Get SMTP settings - from database if company_model is configured, otherwise from .env
+     * Get SMTP settings model for current tenant
+     */
+    public function getSettingsModel(): SmtpSetting
+    {
+        return SmtpSetting::getOrCreateForTenant($this->getTenantId());
+    }
+
+    /**
+     * Get SMTP settings as array
      */
     public function getSettings(): array
     {
-        if ($this->hasCompanyModel()) {
-            return $this->getSettingsFromDatabase();
+        $model = SmtpSetting::forTenant($this->getTenantId());
+
+        if ($model && $model->isConfigured()) {
+            return $model->toSettingsArray();
         }
 
-        return $this->getSettingsFromEnv();
-    }
-
-    /**
-     * Get SMTP settings from database
-     */
-    protected function getSettingsFromDatabase(): array
-    {
-        $settings = [];
-        $companyModel = $this->getCompanyModel();
-
-        foreach (self::KEYS as $key) {
-            $record = $companyModel::where('key', $key)->first();
-            $settings[$key] = $record ? $record->value : null;
-        }
-
-        return $settings;
-    }
-
-    /**
-     * Get SMTP settings from .env/config
-     */
-    protected function getSettingsFromEnv(): array
-    {
+        // Fallback to Laravel mail config if no settings in DB
         return [
             'SMTP_HOST' => config('mail.mailers.smtp.host'),
-            'SMTP_PORT' => config('mail.mailers.smtp.port'),
+            'SMTP_PORT' => config('mail.mailers.smtp.port', 587),
             'SMTP_USERNAME' => config('mail.mailers.smtp.username'),
             'SMTP_PASSWORD' => config('mail.mailers.smtp.password'),
-            'SMTP_ENCRYPTION' => config('mail.mailers.smtp.encryption'),
+            'SMTP_ENCRYPTION' => config('mail.mailers.smtp.encryption', 'tls'),
             'SMTP_FROM_ADDRESS' => config('mail.from.address'),
             'SMTP_FROM_NAME' => config('mail.from.name'),
         ];
     }
 
     /**
-     * Save SMTP settings to database (only works if company_model is configured)
+     * Save SMTP settings
      */
     public function saveSettings(array $data): bool
     {
-        if (!$this->hasCompanyModel()) {
-            return false;
-        }
-
-        $companyModel = $this->getCompanyModel();
-
-        foreach (self::KEYS as $key) {
-            if (array_key_exists($key, $data)) {
-                $companyModel::updateOrCreate(
-                    ['key' => $key],
-                    ['value' => $data[$key] ?? '']
-                );
-            }
-        }
-
-        return true;
+        $model = $this->getSettingsModel();
+        return $model->updateFromArray($data);
     }
 
     /**
@@ -177,10 +150,19 @@ class SmtpConfigService
     }
 
     /**
-     * Check if settings can be edited (only if company_model is configured)
+     * Check if there are saved settings in database (not just fallback)
+     */
+    public function hasSavedSettings(): bool
+    {
+        $model = SmtpSetting::forTenant($this->getTenantId());
+        return $model && $model->isConfigured();
+    }
+
+    /**
+     * Settings can always be edited (stored in package's own table)
      */
     public function canEditSettings(): bool
     {
-        return $this->hasCompanyModel();
+        return true;
     }
 }

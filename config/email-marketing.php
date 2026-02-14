@@ -16,19 +16,49 @@ return [
     // Random delay range (seconds) - adds 0 to this value
     'random_delay' => env('EMAIL_MARKETING_RANDOM_DELAY', 120),
 
-    // Lead/Recipient model class (must have: id, email, company_name or name)
+    /*
+    |--------------------------------------------------------------------------
+    | Lead/Recipient Model
+    |--------------------------------------------------------------------------
+    |
+    | The model class for email recipients. Must have: id, email, company_name or name
+    |
+    */
     'lead_model' => env('EMAIL_MARKETING_LEAD_MODEL', null),
-
-    // Company/Settings model class for storing SMTP settings (must have: key, value columns)
-    // Set to null to use .env SMTP settings instead
-    'company_model' => env('EMAIL_MARKETING_COMPANY_MODEL', null),
-
-    // Images model class for logo (must have: type, src columns)
-    // Set to null to disable logo in emails
-    'images_model' => env('EMAIL_MARKETING_IMAGES_MODEL', null),
 
     // Database connection for leads (null = default connection)
     'lead_connection' => env('EMAIL_MARKETING_LEAD_CONNECTION', null),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Multi-tenancy (SaaS)
+    |--------------------------------------------------------------------------
+    |
+    | For SaaS applications, you can provide a tenant resolver callback.
+    | This allows each tenant to have their own SMTP settings.
+    |
+    | Example:
+    | 'tenant_resolver' => fn() => auth()->user()?->tenant_id,
+    |
+    */
+    'tenant_resolver' => null,
+
+    /*
+    |--------------------------------------------------------------------------
+    | Optional External Models
+    |--------------------------------------------------------------------------
+    |
+    | These models are optional and provide additional features:
+    | - images_model: For logo in emails (must have: type, src columns)
+    |
+    */
+    'images_model' => env('EMAIL_MARKETING_IMAGES_MODEL', null),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Admin Panel Settings
+    |--------------------------------------------------------------------------
+    */
 
     // Admin route prefix
     'route_prefix' => env('EMAIL_MARKETING_ROUTE_PREFIX', 'admin/email-marketing'),
@@ -42,10 +72,12 @@ return [
     // Allowed emails for admin access (empty = all authenticated)
     'admin_emails' => [],
 
-    // Company settings keys (for sender info and logo)
-    'company_settings' => [
-        'smtp_from_name' => 'SMTP_FROM_NAME',
-        'site_title' => 'site_title',
-        'logo_type' => 'company',
+    /*
+    |--------------------------------------------------------------------------
+    | Email Branding
+    |--------------------------------------------------------------------------
+    */
+    'branding' => [
+        'logo_type' => 'company', // Used with images_model to find logo
     ],
 ];

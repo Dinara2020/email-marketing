@@ -74,16 +74,11 @@ class EmailMarketingController extends Controller
     public function smtpSettings()
     {
         $settings = $this->smtpConfig->getSettings();
-        $canEdit = $this->smtpConfig->canEditSettings();
-        return view('email-marketing::smtp-settings', compact('settings', 'canEdit'));
+        return view('email-marketing::smtp-settings', compact('settings'));
     }
 
     public function saveSmtpSettings(Request $request)
     {
-        if (!$this->smtpConfig->canEditSettings()) {
-            return back()->with('error', 'SMTP settings can only be changed in .env file');
-        }
-
         $request->validate([
             'SMTP_HOST' => 'required|string',
             'SMTP_PORT' => 'required|integer',

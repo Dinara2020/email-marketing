@@ -1,6 +1,6 @@
 # Laravel Email Marketing
 
-A comprehensive email marketing package for Laravel with campaigns, templates, tracking, and rate limiting.
+A comprehensive email marketing package for Laravel with campaigns, templates, tracking, and rate limiting. **SaaS-ready with multi-tenancy support.**
 
 ## Features
 
@@ -11,8 +11,10 @@ A comprehensive email marketing package for Laravel with campaigns, templates, t
 - **Rate Limiting** - Built-in rate limiting (configurable, default 10 emails/hour)
 - **Queue Support** - Send emails via Laravel queues with random delays
 - **Bounce Detection** - Automatic detection of bounced/invalid emails
-- **SMTP Configuration** - Configure SMTP settings from admin panel
+- **SMTP Configuration** - Configure SMTP settings from admin panel (stored in database)
+- **Multi-tenancy** - SaaS-ready with per-tenant SMTP settings
 - **Admin Dashboard** - Full admin interface for managing everything
+- **Standalone Layout** - Works out of the box with built-in Bootstrap 5 admin panel
 
 ## Requirements
 
@@ -26,16 +28,16 @@ A comprehensive email marketing package for Laravel with campaigns, templates, t
 composer require dinara/email-marketing
 ```
 
-Publish the configuration:
-
-```bash
-php artisan vendor:publish --tag=email-marketing-config
-```
-
 Run migrations:
 
 ```bash
 php artisan migrate
+```
+
+Optionally publish configuration:
+
+```bash
+php artisan vendor:publish --tag=email-marketing-config
 ```
 
 Optionally publish views for customization:
@@ -46,25 +48,36 @@ php artisan vendor:publish --tag=email-marketing-views
 
 ## Configuration
 
-### Required Environment Variables
+### Minimal Setup
 
 Add to your `.env` file:
 
 ```env
 # Required: Your lead/recipient model
 EMAIL_MARKETING_LEAD_MODEL=App\Models\Lead
+```
 
-# Optional: Model for storing SMTP settings (null = use .env SMTP)
-EMAIL_MARKETING_COMPANY_MODEL=App\Models\Company
+That's it! The package works out of the box with:
+- Built-in Bootstrap 5 admin panel
+- SMTP settings stored in database (configurable from admin panel)
+- Default rate limiting (10 emails/hour)
 
-# Optional: Model for logo images (null = no logo)
-EMAIL_MARKETING_IMAGES_MODEL=App\Models\Images
+### Full Configuration
+
+```env
+# Required: Your lead/recipient model
+EMAIL_MARKETING_LEAD_MODEL=App\Models\Lead
 
 # Optional: Database connection for leads (null = default)
 EMAIL_MARKETING_LEAD_CONNECTION=null
 
+# Optional: Model for logo images (must have: type, src columns)
+EMAIL_MARKETING_IMAGES_MODEL=App\Models\Images
+
 # Optional: Use your own layout (null = use package's built-in layout)
-EMAIL_MARKETING_LAYOUT=
+EMAIL_MARKETING_LAYOUT=admin.layout
+
+# Optional: Admin panel route prefix
 EMAIL_MARKETING_ROUTE_PREFIX=admin/email-marketing
 
 # Optional: Rate limiting
@@ -73,42 +86,19 @@ EMAIL_MARKETING_BASE_DELAY=360
 EMAIL_MARKETING_RANDOM_DELAY=120
 ```
 
-### Config File
+### Multi-tenancy (SaaS)
 
-The published `config/email-marketing.php`:
+For SaaS applications with multiple tenants, configure a tenant resolver in `config/email-marketing.php`:
 
 ```php
-return [
-    // Rate limiting: max emails per hour
-    'rate_limit' => env('EMAIL_MARKETING_RATE_LIMIT', 10),
+'tenant_resolver' => fn() => auth()->user()?->tenant_id,
+```
 
-    // Base delay between emails (seconds)
-    'base_delay' => env('EMAIL_MARKETING_BASE_DELAY', 360),
+Each tenant will have their own SMTP settings stored in the `email_smtp_settings` table.
 
-    // Random delay range (seconds)
-    'random_delay' => env('EMAIL_MARKETING_RANDOM_DELAY', 120),
-
-    // Lead/recipient model class (REQUIRED)
-    'lead_model' => env('EMAIL_MARKETING_LEAD_MODEL', null),
-
-    // Company/Settings model for SMTP storage (optional)
-    'company_model' => env('EMAIL_MARKETING_COMPANY_MODEL', null),
-
-    // Images model for logo (optional)
-    'images_model' => env('EMAIL_MARKETING_IMAGES_MODEL', null),
-
-    // Database connection for leads (null = default)
-    'lead_connection' => env('EMAIL_MARKETING_LEAD_CONNECTION', null),
-
-    // Admin route prefix
-    'route_prefix' => env('EMAIL_MARKETING_ROUTE_PREFIX', 'admin/email-marketing'),
-
-    // Admin middleware
-    'middleware' => ['web', 'auth'],
-
-    // Blade layout to extend (null = use package's built-in layout)
-    'layout' => env('EMAIL_MARKETING_LAYOUT', null),
-];
+Example with Spatie Laravel Multitenancy:
+```php
+'tenant_resolver' => fn() => app('currentTenant')?->id,
 ```
 
 ## Usage
@@ -164,6 +154,7 @@ php artisan horizon
 use Dinara\EmailMarketing\Models\EmailTemplate;
 use Dinara\EmailMarketing\Models\EmailCampaign;
 use Dinara\EmailMarketing\Services\EmailCampaignService;
+use Dinara\EmailMarketing\Services\SmtpConfigService;
 
 // Create a template
 $template = EmailTemplate::create([
@@ -182,7 +173,22 @@ $campaign = $service->createCampaign(
 );
 
 $service->startCampaign($campaign);
+
+// For SaaS: Set tenant before operations
+$smtpService = app(SmtpConfigService::class);
+$smtpService->setTenant($tenantId);
+$settings = $smtpService->getSettings();
 ```
+
+## Database Tables
+
+The package creates the following tables:
+
+- `email_templates` - Email templates with HTML content
+- `email_campaigns` - Campaign metadata and status
+- `email_sends` - Individual email sends with tracking
+- `email_clicks` - Click tracking data
+- `email_smtp_settings` - SMTP settings (supports multi-tenancy)
 
 ## Tracking
 
@@ -210,14 +216,7 @@ The package automatically detects bounced emails based on SMTP error codes (550,
 
 ### Custom Lead Model
 
-Create your own lead model and configure it:
-
-```php
-// config/email-marketing.php
-'lead_model' => App\Models\Contact::class,
-```
-
-Your model should have at least:
+Your lead model should have at least:
 - `id`
 - `email`
 - `company_name` or `name`
@@ -235,10 +234,15 @@ Views will be copied to `resources/views/vendor/email-marketing/`.
 
 ### Custom Layout
 
-Set your admin layout in config:
+Set your admin layout in `.env`:
 
-```php
-'layout' => 'admin.layout',
+```env
+EMAIL_MARKETING_LAYOUT=admin.layout
+```
+
+Your layout should have a `content` section:
+```blade
+@yield('content')
 ```
 
 ## Events
