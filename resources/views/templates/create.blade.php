@@ -128,26 +128,20 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Check if CKEditor is available
-    if (typeof CKEDITOR !== 'undefined' && CKEDITOR.ClassicEditor) {
-        CKEDITOR.ClassicEditor
+    if (typeof ClassicEditor !== 'undefined') {
+        ClassicEditor
             .create(document.querySelector('#body_html'), {
                 toolbar: {
                     items: [
                         'heading', '|',
-                        'bold', 'italic', 'underline', '|',
+                        'bold', 'italic', '|',
                         'link', '|',
                         'bulletedList', 'numberedList', '|',
-                        'undo', 'redo', '|',
-                        'sourceEditing'
-                    ],
-                    shouldNotGroupWhenFull: true
-                },
-                htmlSupport: {
-                    allow: [
-                        { name: /.*/, attributes: true, classes: true, styles: true }
+                        'blockQuote', '|',
+                        'insertTable', '|',
+                        'undo', 'redo'
                     ]
-                },
-                removePlugins: ['CKBox', 'CKFinder', 'EasyImage', 'RealTimeCollaborativeComments', 'RealTimeCollaborativeTrackChanges', 'RealTimeCollaborativeRevisionHistory', 'PresenceList', 'Comments', 'TrackChanges', 'TrackChangesData', 'RevisionHistory', 'Pagination', 'WProofreader', 'MathType', 'SlashCommand', 'Template', 'DocumentOutline', 'FormatPainter', 'TableOfContents', 'AIAssistant', 'OpenAITextAdapter', 'AWSTextAdapter', 'PasteFromOfficeEnhanced', 'CaseChange', 'ExportPdf', 'ExportWord', 'ImportWord', 'MultiLevelList']
+                }
             })
             .then(editor => {
                 window.editor = editor;
