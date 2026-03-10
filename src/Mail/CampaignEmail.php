@@ -62,8 +62,23 @@ class CampaignEmail extends Mailable
      */
     protected function wrapHtml(string $html, string $subject): string
     {
-        // If already has DOCTYPE, return as is
+        // If already has DOCTYPE, inject unsubscribe link before </body> and return
         if (stripos($html, '<!DOCTYPE') !== false) {
+            if ($this->unsubscribeUrl) {
+                $unsubscribeHtml = '
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin-top:20px;">
+    <tr>
+        <td style="padding: 15px 20px; border-top: 1px solid #eeeeee; font-family: Arial, Helvetica, sans-serif; font-size: 12px; line-height: 1.5; color: #999999; text-align: center;">
+            <a href="' . htmlspecialchars($this->unsubscribeUrl) . '" style="color: #999999; text-decoration: underline;">Отписаться от рассылки</a>
+        </td>
+    </tr>
+</table>';
+                $pos = stripos($html, '</body>');
+                if ($pos !== false) {
+                    return substr($html, 0, $pos) . $unsubscribeHtml . substr($html, $pos);
+                }
+                return $html . $unsubscribeHtml;
+            }
             return $html;
         }
 
