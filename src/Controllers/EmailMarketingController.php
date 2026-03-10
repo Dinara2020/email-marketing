@@ -151,7 +151,9 @@ class EmailMarketingController extends Controller
             'body_html' => 'required|string',
         ]);
 
-        $template->update($request->only(['name', 'subject', 'body_html', 'body_text', 'is_active']));
+        $data = $request->only(['name', 'subject', 'body_html', 'body_text']);
+        $data['is_active'] = $request->boolean('is_active');
+        $template->update($data);
 
         return redirect()->route('email-marketing.templates')
             ->with('success', 'Template updated');
