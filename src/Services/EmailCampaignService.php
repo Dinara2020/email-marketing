@@ -471,7 +471,8 @@ class EmailCampaignService
             // Send using Mailable for better deliverability
             $mailable = new CampaignEmail(
                 htmlContent: $rendered['html'],
-                subject: '[TEST] ' . $rendered['subject']
+                subject: '[TEST] ' . $rendered['subject'],
+                unsubscribeUrl: EmailUnsubscribe::getUnsubscribeUrl($testEmail)
             );
 
             Mail::to($testEmail)->send($mailable);
